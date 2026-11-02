@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Exceptions\ApiExceptionRenderer;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -15,10 +16,12 @@ return Application::configure(basePath: dirname(__DIR__))
         apiPrefix: env('API_PREFIX', 'api'),
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // There is no web login page: guests always get a 401, never a redirect.
+        $middleware->redirectGuestsTo(static fn (): ?string => null);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
-        );
+        $renderer = new ApiExceptionRenderer;
+
+        $exceptions->shouldRenderJsonWhen(ApiExceptionRenderer::shouldRenderJson(...));
+        $exceptions->render(fn (Throwable $e, Request $request) => $renderer($e, $request));
     })->create();
