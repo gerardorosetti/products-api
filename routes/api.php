@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CurrencyController;
 use App\Http\Controllers\Api\HealthController;
+use App\Http\Controllers\Api\ProductController;
 use Illuminate\Support\Facades\Route;
 
 // Registered with the API_PREFIX prefix (see bootstrap/app.php).
@@ -20,5 +21,6 @@ Route::middleware('throttle:api')->group(function (): void {
         Route::get('/auth/me', [AuthController::class, 'me'])->name('auth.me');
 
         Route::apiResource('currencies', CurrencyController::class)->whereNumber('currency');
+        Route::apiResource('products', ProductController::class)->whereNumber('product');
     });
 });
