@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Support\Docs\BearerSecurityStrategy;
 use Dedoc\Scramble\Http\Middleware\RestrictedDocsAccess;
 use Dedoc\Scramble\OpenApiVersion;
 
@@ -21,7 +22,7 @@ return [
      * Multiple includes or wildcards → server defaults to / and paths stay full (/api/users).
      * Override with `servers`, or use Scramble::registerApi() for separate bases.
      */
-    'api_path' => 'api',
+    'api_path' => env('API_PREFIX', 'api'),
 
     /*
      * Your API domain. By default, app domain is used. This is also a part of the default API routes
@@ -53,16 +54,16 @@ return [
         /*
          * API version.
          */
-        'version' => env('API_VERSION', '0.0.1'),
+        'version' => env('APP_VERSION', '1.0.0'),
 
         /*
          * Description rendered on the home page of the API documentation (`/docs/api`).
          */
-        'description' => '',
+        'description' => 'RESTful API to manage products and their prices in multiple currencies. Log in with POST /auth/login and send the returned opaque token as a Bearer token.',
     ],
 
     'ui' => [
-        'title' => null,
+        'title' => 'Products API',
     ],
 
     /*
@@ -186,5 +187,5 @@ return [
      * ],
      */
     // 'security_strategy' => \Dedoc\Scramble\SecurityDocumentation\MiddlewareAuthSecurityStrategy::class,
-    'security_strategy' => null,
+    'security_strategy' => BearerSecurityStrategy::class,
 ];
