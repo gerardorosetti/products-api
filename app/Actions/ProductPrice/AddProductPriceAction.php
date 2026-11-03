@@ -6,6 +6,8 @@ namespace App\Actions\ProductPrice;
 
 use App\Models\Product;
 use App\Models\ProductPrice;
+use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 final readonly class AddProductPriceAction
@@ -21,7 +23,14 @@ final readonly class AddProductPriceAction
             ]);
         }
 
-        $price = $product->prices()->create($data);
+        try {
+            // The nested transaction keeps an enclosing PostgreSQL transaction usable after a failed insert.
+            $price = DB::transaction(fn (): ProductPrice => $product->prices()->create($data));
+        } catch (UniqueConstraintViolationException) {
+            throw ValidationException::withMessages([
+                'currency_id' => 'This product already has a price in that currency.',
+            ]);
+        }
 
         return $price->load('currency');
     }

@@ -132,3 +132,16 @@ it('keeps full precision for a price sent as a JSON number', function (): void {
         ->assertCreated()
         ->assertJsonPath('data.price', '1234567890123.45');
 });
+
+it('maps a concurrent duplicate price to a validation error instead of a server error', function (): void {
+    $price = ProductPrice::factory()->create();
+
+    expect(fn () => app(AddProductPriceAction::class)->handle($price->product, [
+        'currency_id' => $price->currency_id,
+        'price' => '5.00',
+    ]))->toThrow(function (ValidationException $e): void {
+        expect($e->errors())->toHaveKey('currency_id');
+    });
+
+    expect(ProductPrice::query()->count())->toBe(1);
+});
