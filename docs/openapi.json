@@ -36,39 +36,14 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "The bearer token and the authenticated user.",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "type": "object",
-                                            "properties": {
-                                                "token": {
-                                                    "type": "string"
-                                                },
-                                                "token_type": {
-                                                    "type": "string",
-                                                    "const": "Bearer"
-                                                },
-                                                "expires_at": {
-                                                    "type": [
-                                                        "string",
-                                                        "null"
-                                                    ]
-                                                },
-                                                "user": {
-                                                    "type": "array",
-                                                    "items": {}
-                                                }
-                                            },
-                                            "required": [
-                                                "token",
-                                                "token_type",
-                                                "expires_at",
-                                                "user"
-                                            ]
+                                            "$ref": "#/components/schemas/LoginResource"
                                         }
                                     },
                                     "required": [
@@ -328,6 +303,67 @@
                     }
                 }
             },
+            "patch": {
+                "operationId": "currencies.update.patch",
+                "description": "PUT replaces every field; PATCH updates only the fields sent.",
+                "summary": "Update a currency",
+                "tags": [
+                    "Currency"
+                ],
+                "parameters": [
+                    {
+                        "name": "currency",
+                        "in": "path",
+                        "required": true,
+                        "description": "The currency ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateCurrencyRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`CurrencyResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/CurrencyResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            },
             "delete": {
                 "operationId": "currencies.destroy",
                 "description": "Fails with 409 when a product or price still references the currency.",
@@ -358,6 +394,32 @@
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "409": {
+                        "description": "The currency is referenced by a product or price.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "code": {
+                                            "type": "string",
+                                            "enum": [
+                                                "currency_in_use",
+                                                "conflict"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "code"
+                                    ]
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -461,8 +523,8 @@
                                 "number",
                                 "null"
                             ],
-                            "minimum": 0,
-                            "maximum": 1000000000000000
+                            "description": "Decimal amount between 0 and 999999999999999.99 with at most 2 decimals. Send it as a string to keep full precision; JSON numbers are accepted too.",
+                            "minimum": 0
                         }
                     },
                     {
@@ -473,8 +535,8 @@
                                 "number",
                                 "null"
                             ],
-                            "minimum": 0,
-                            "maximum": 1000000000000000
+                            "description": "Decimal amount between 0 and 999999999999999.99 with at most 2 decimals. Send it as a string to keep full precision; JSON numbers are accepted too.",
+                            "minimum": 0
                         }
                     },
                     {
@@ -858,6 +920,78 @@
                     }
                 }
             },
+            "patch": {
+                "operationId": "products.update.patch",
+                "description": "PUT replaces every field; PATCH updates only the fields sent.",
+                "summary": "Update a product",
+                "tags": [
+                    "Product"
+                ],
+                "parameters": [
+                    {
+                        "name": "product",
+                        "in": "path",
+                        "required": true,
+                        "description": "The product ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateProductRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`ProductResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/ProductResource"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "currency",
+                                                        "prices"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            },
             "delete": {
                 "operationId": "products.destroy",
                 "description": "Soft delete: the product disappears from the API but the row is kept.",
@@ -1078,6 +1212,34 @@
                 ],
                 "title": "LoginRequest"
             },
+            "LoginResource": {
+                "type": "object",
+                "properties": {
+                    "token": {
+                        "type": "string"
+                    },
+                    "token_type": {
+                        "type": "string",
+                        "const": "Bearer"
+                    },
+                    "expires_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "user": {
+                        "$ref": "#/components/schemas/UserResource"
+                    }
+                },
+                "required": [
+                    "token",
+                    "token_type",
+                    "expires_at",
+                    "user"
+                ],
+                "title": "LoginResource"
+            },
             "ProductCollection": {
                 "type": "array",
                 "items": {
@@ -1228,8 +1390,8 @@
                     },
                     "price": {
                         "type": "number",
-                        "minimum": 0,
-                        "maximum": 1000000000000000
+                        "description": "Decimal amount between 0 and 999999999999999.99 with at most 2 decimals. Send it as a string to keep full precision; JSON numbers are accepted too.",
+                        "minimum": 0
                     }
                 },
                 "required": [
@@ -1251,21 +1413,21 @@
                     },
                     "price": {
                         "type": "number",
-                        "minimum": 0,
-                        "maximum": 1000000000000000
+                        "description": "Decimal amount between 0 and 999999999999999.99 with at most 2 decimals. Send it as a string to keep full precision; JSON numbers are accepted too.",
+                        "minimum": 0
                     },
                     "currency_id": {
                         "type": "integer"
                     },
                     "tax_cost": {
                         "type": "number",
-                        "minimum": 0,
-                        "maximum": 1000000000000000
+                        "description": "Decimal amount between 0 and 999999999999999.99 with at most 2 decimals. Send it as a string to keep full precision; JSON numbers are accepted too.",
+                        "minimum": 0
                     },
                     "manufacturing_cost": {
                         "type": "number",
-                        "minimum": 0,
-                        "maximum": 1000000000000000
+                        "description": "Decimal amount between 0 and 999999999999999.99 with at most 2 decimals. Send it as a string to keep full precision; JSON numbers are accepted too.",
+                        "minimum": 0
                     },
                     "prices": {
                         "type": [
@@ -1280,8 +1442,8 @@
                                 },
                                 "price": {
                                     "type": "number",
-                                    "minimum": 0,
-                                    "maximum": 1000000000000000
+                                    "description": "Decimal amount between 0 and 999999999999999.99 with at most 2 decimals. Send it as a string to keep full precision; JSON numbers are accepted too.",
+                                    "minimum": 0
                                 }
                             },
                             "required": [
@@ -1344,21 +1506,21 @@
                     },
                     "price": {
                         "type": "number",
-                        "minimum": 0,
-                        "maximum": 1000000000000000
+                        "description": "Decimal amount between 0 and 999999999999999.99 with at most 2 decimals. Send it as a string to keep full precision; JSON numbers are accepted too.",
+                        "minimum": 0
                     },
                     "currency_id": {
                         "type": "integer"
                     },
                     "tax_cost": {
                         "type": "number",
-                        "minimum": 0,
-                        "maximum": 1000000000000000
+                        "description": "Decimal amount between 0 and 999999999999999.99 with at most 2 decimals. Send it as a string to keep full precision; JSON numbers are accepted too.",
+                        "minimum": 0
                     },
                     "manufacturing_cost": {
                         "type": "number",
-                        "minimum": 0,
-                        "maximum": 1000000000000000
+                        "description": "Decimal amount between 0 and 999999999999999.99 with at most 2 decimals. Send it as a string to keep full precision; JSON numbers are accepted too.",
+                        "minimum": 0
                     }
                 },
                 "required": [

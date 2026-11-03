@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Support\Docs\ApiDocumentTransformer;
+use App\Support\Docs\PatchOperationIdTransformer;
+use Dedoc\Scramble\Scramble;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
@@ -32,6 +36,16 @@ class AppServiceProvider extends ServiceProvider
         DB::prohibitDestructiveCommands($this->app->isProduction());
 
         $this->configureRateLimiting();
+
+        Scramble::configure()
+            ->resolveOperationMethodsUsing(static function (Route $route): string|array {
+                $methods = array_map('strtolower', $route->methods());
+
+                // Document both verbs of PUT|PATCH routes instead of only the first one.
+                return in_array('put', $methods, true) && in_array('patch', $methods, true) ? ['put', 'patch'] : $methods[0];
+            })
+            ->withOperationTransformers(PatchOperationIdTransformer::class)
+            ->withDocumentTransformers(ApiDocumentTransformer::class);
 
         // The API documentation is public and read-only.
         Gate::define('viewApiDocs', static fn (): bool => true);

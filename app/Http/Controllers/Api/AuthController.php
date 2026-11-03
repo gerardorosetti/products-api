@@ -7,9 +7,10 @@ namespace App\Http\Controllers\Api;
 use App\Actions\Auth\IssueTokenAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Resources\LoginResource;
 use App\Http\Resources\UserResource;
 use App\Models\User;
-use Illuminate\Http\JsonResponse;
+use Dedoc\Scramble\Attributes\Response as ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
@@ -20,7 +21,8 @@ final class AuthController extends Controller
      *
      * Exchanges credentials for an opaque bearer token. The token abilities match the user's permissions.
      */
-    public function login(LoginRequest $request, IssueTokenAction $issueToken): JsonResponse
+    #[ApiResponse(200, 'The bearer token and the authenticated user.')]
+    public function login(LoginRequest $request, IssueTokenAction $issueToken): LoginResource
     {
         $token = $issueToken->handle(
             $request->string('email')->toString(),
@@ -28,17 +30,7 @@ final class AuthController extends Controller
             $request->filled('device_name') ? $request->string('device_name')->toString() : null,
         );
 
-        /** @var User $user */
-        $user = $token->accessToken->tokenable;
-
-        return response()->json([
-            'data' => [
-                'token' => $token->plainTextToken,
-                'token_type' => 'Bearer',
-                'expires_at' => $token->accessToken->expires_at?->toIso8601String(),
-                'user' => (new UserResource($user))->resolve($request),
-            ],
-        ]);
+        return new LoginResource($token);
     }
 
     /**
