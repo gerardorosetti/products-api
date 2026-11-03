@@ -269,6 +269,20 @@ jobs:
           echo "Viewer POST /api/products -> $status"
           test "$status" = "403"
 
+      - name: Run the Postman collection (Newman)
+        run: |
+          docker compose exec -T app php artisan migrate:fresh --seed --force
+          docker run --rm --network products-api_default \
+            -v "$PWD/docs/postman:/etc/newman" postman/newman:6-alpine \
+            run products-api.postman_collection.json \
+            -e local.postman_environment.json \
+            --env-var base_url=http://nginx/api
+
+      - name: Check that docs/openapi.json is up to date
+        run: |
+          docker compose exec -T app php artisan scramble:export --path=docs/openapi.json
+          git diff --exit-code -- docs/openapi.json
+
       - name: Build production image
         run: docker build --target prod .
 
