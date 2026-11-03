@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Models\User;
 use App\Support\Docs\ApiDocumentTransformer;
 use App\Support\Docs\PatchOperationIdTransformer;
 use Dedoc\Scramble\Scramble;
@@ -47,8 +48,8 @@ class AppServiceProvider extends ServiceProvider
             ->withOperationTransformers(PatchOperationIdTransformer::class)
             ->withDocumentTransformers(ApiDocumentTransformer::class);
 
-        // The API documentation is public and read-only.
-        Gate::define('viewApiDocs', static fn (): bool => true);
+        // The API documentation is public and read-only. The nullable user lets guests pass the gate.
+        Gate::define('viewApiDocs', static fn (?User $user = null): bool => true);
     }
 
     private function configureRateLimiting(): void
