@@ -1,11 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Factories;
 
+use App\Enums\Role;
 use App\Models\User;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Spatie\Permission\Models\Role as SpatieRole;
 
 /**
  * @extends Factory<User>
@@ -31,6 +36,27 @@ class UserFactory extends Factory
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
         ];
+    }
+
+    public function admin(): static
+    {
+        return $this->withRole(Role::Admin);
+    }
+
+    public function viewer(): static
+    {
+        return $this->withRole(Role::Viewer);
+    }
+
+    private function withRole(Role $role): static
+    {
+        return $this->afterCreating(function (User $user) use ($role): void {
+            if (SpatieRole::query()->where('name', $role->value)->doesntExist()) {
+                (new RolesAndPermissionsSeeder)->run();
+            }
+
+            $user->assignRole($role->value);
+        });
     }
 
     /**
