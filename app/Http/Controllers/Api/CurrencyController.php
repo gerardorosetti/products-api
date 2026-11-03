@@ -12,6 +12,7 @@ use App\Http\Requests\Currency\StoreCurrencyRequest;
 use App\Http\Requests\Currency\UpdateCurrencyRequest;
 use App\Http\Resources\CurrencyResource;
 use App\Models\Currency;
+use Dedoc\Scramble\Attributes\Response as ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
@@ -64,6 +65,7 @@ final class CurrencyController extends Controller
      *
      * Fails with 409 when a product or price still references the currency.
      */
+    #[ApiResponse(409, 'The currency is referenced by a product or price.', type: "array{message: string, code: 'currency_in_use'|'conflict'}")]
     public function destroy(Currency $currency, DeleteCurrencyAction $action): Response
     {
         Gate::authorize('delete', $currency);

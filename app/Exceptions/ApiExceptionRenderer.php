@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Exceptions;
 
+use App\Support\ConstraintViolation;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -27,7 +29,8 @@ final class ApiExceptionRenderer
     {
         $prefix = trim((string) config('app.api_prefix'), '/');
 
-        return $request->is($prefix, $prefix.'/*') || $request->expectsJson();
+        // An empty prefix means the whole application is the API.
+        return $prefix === '' || $request->is($prefix, $prefix.'/*') || $request->expectsJson();
     }
 
     public function __invoke(Throwable $e, Request $request): ?JsonResponse
@@ -49,6 +52,11 @@ final class ApiExceptionRenderer
                 headers: $e->getHeaders(),
             ),
             $e instanceof CurrencyInUseException => $this->envelope(409, 'currency_in_use', $e->getMessage()),
+            $e instanceof QueryException && (ConstraintViolation::isUnique($e) || ConstraintViolation::isForeignKey($e)) => $this->envelope(
+                409,
+                'conflict',
+                'The request conflicts with the current state of the resource.',
+            ),
             $e instanceof ValidationException => $this->envelope(
                 422,
                 'validation_failed',

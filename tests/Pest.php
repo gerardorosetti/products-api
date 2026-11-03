@@ -14,7 +14,7 @@ pest()->extend(TestCase::class)
 function actingAsAdmin(): User
 {
     $user = User::factory()->admin()->create();
-    Sanctum::actingAs($user);
+    Sanctum::actingAs($user, $user->getAllPermissions()->pluck('name')->all());
 
     return $user;
 }
@@ -22,7 +22,7 @@ function actingAsAdmin(): User
 function actingAsViewer(): User
 {
     $user = User::factory()->viewer()->create();
-    Sanctum::actingAs($user);
+    Sanctum::actingAs($user, $user->getAllPermissions()->pluck('name')->all());
 
     return $user;
 }

@@ -21,10 +21,10 @@ class ProductFactory extends Factory
         return [
             'name' => rtrim(fake()->unique()->sentence(3), '.'),
             'description' => fake()->sentence(12),
-            'price' => fake()->randomFloat(2, 1, 5000),
+            'price' => number_format(fake()->randomFloat(2, 1, 5000), 2, '.', ''),
             'currency_id' => Currency::factory(),
-            'tax_cost' => fake()->randomFloat(2, 0, 500),
-            'manufacturing_cost' => fake()->randomFloat(2, 0, 1000),
+            'tax_cost' => number_format(fake()->randomFloat(2, 0, 500), 2, '.', ''),
+            'manufacturing_cost' => number_format(fake()->randomFloat(2, 0, 1000), 2, '.', ''),
         ];
     }
 }

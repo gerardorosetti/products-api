@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\ProductPrice;
 
+use App\Http\Requests\Concerns\NormalizesDecimalInput;
 use App\Models\Product;
 use App\Support\Rules;
 use Illuminate\Foundation\Http\FormRequest;
@@ -11,11 +12,22 @@ use Illuminate\Validation\Rule;
 
 final class StoreProductPriceRequest extends FormRequest
 {
+    use NormalizesDecimalInput;
+
     public function authorize(): bool
     {
         $product = $this->route('product');
 
         return $product instanceof Product && ($this->user()?->can('addPrice', $product) ?? false);
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->normalizeDecimalInput(['price']);
+
+        if ($this->has('currency_id')) {
+            $this->merge(['currency_id' => Rules::castId($this->input('currency_id'))]);
+        }
     }
 
     /**
