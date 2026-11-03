@@ -304,6 +304,16 @@ it('filters products by currency and price range', function (): void {
     $this->getJson(route('products.index', ['currency_id' => $eur->id, 'min_price' => '60']))->assertJsonPath('meta.total', 0);
 });
 
+it('filters products by max_price without min_price', function (): void {
+    actingAsViewer();
+    Product::factory()->create(['price' => 10]);
+    Product::factory()->create(['price' => 50]);
+
+    $this->getJson(route('products.index', ['max_price' => '20']))->assertOk()->assertJsonPath('meta.total', 1);
+    $this->getJson(route('products.index', ['min_price' => '', 'max_price' => '20']))->assertOk()->assertJsonPath('meta.total', 1);
+    $this->getJson(route('products.index', ['min_price' => '30', 'max_price' => '20']))->assertUnprocessable();
+});
+
 it('sorts products', function (string $sort, array $expected): void {
     actingAsViewer();
     $this->travelTo(now()->subDays(3));

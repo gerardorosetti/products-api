@@ -27,7 +27,7 @@ final class ProductIndexRequest extends FormRequest
             'search' => ['nullable', 'string', 'max:100'],
             'currency_id' => ['nullable', 'integer', Rule::exists('currencies', 'id')],
             'min_price' => ['nullable', ...$price],
-            'max_price' => ['nullable', ...$price, 'gte:min_price'],
+            'max_price' => ['nullable', ...$price, ...($this->filled('min_price') ? ['gte:min_price'] : [])],
             'sort' => ['nullable', 'string', Rule::in(Product::sortOptions())],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
             'page' => ['nullable', 'integer', 'min:1'],
