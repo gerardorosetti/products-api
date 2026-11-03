@@ -77,3 +77,12 @@ it('exposes the default debug payload for unexpected errors when debug is on', f
         ->assertStatus(500)
         ->assertJsonPath('message', 'visible while debugging');
 });
+
+it('renders every error as JSON when the API prefix is empty', function (): void {
+    config(['app.api_prefix' => '']);
+
+    $this->get('/anything/at/all', ['Accept' => 'text/html'])
+        ->assertNotFound()
+        ->assertHeader('Content-Type', 'application/json')
+        ->assertExactJson(['message' => 'Resource not found.', 'code' => 'not_found']);
+});

@@ -29,7 +29,8 @@ final class ApiExceptionRenderer
     {
         $prefix = trim((string) config('app.api_prefix'), '/');
 
-        return $request->is($prefix, $prefix.'/*') || $request->expectsJson();
+        // An empty prefix means the whole application is the API.
+        return $prefix === '' || $request->is($prefix, $prefix.'/*') || $request->expectsJson();
     }
 
     public function __invoke(Throwable $e, Request $request): ?JsonResponse
