@@ -269,6 +269,7 @@ Códigos HTTP y valores de `code` gestionados por `ApiExceptionRenderer`:
 | `404 Not Found` | `not_found` | Recurso inexistente o producto con borrado lógico aplicado. |
 | `405 Method Not Allowed` | `method_not_allowed` | Método HTTP no soportado para la ruta solicitada. |
 | `409 Conflict` | `currency_in_use` | Intento de eliminación de una divisa asociada a productos o precios. |
+| `409 Conflict` | `conflict` | Violación de una restricción de la base de datos (unicidad o clave foránea) que escapó a la validación, p. ej. por una condición de carrera. |
 | `422 Unprocessable Entity` | `validation_failed` | Falla en validación de FormRequest (incluye objeto `errors`). |
 | `429 Too Many Requests` | `too_many_requests` | Límite de peticiones por minuto excedido (con cabecera `Retry-After`). |
 | `500 Internal Server Error` | `server_error` | Excepción interna no controlada (detalles omitidos en producción). |
