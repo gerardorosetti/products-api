@@ -31,6 +31,7 @@ RESTful API built with Laravel 13 to manage products and their prices in multipl
 - [API documentation](#api-documentation)
 - [Project structure](#project-structure)
 - [Git workflow](#git-workflow)
+- [License](#license)
 
 ## Overview
 
@@ -453,3 +454,7 @@ tests/                       Feature, unit and architecture tests
   - `release/*`: prepares a version, is merged into `main` and back into `develop`.
 - **Commits:** [Conventional Commits](https://www.conventionalcommits.org/) in English (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `perf:`, `build:`, `ci:`, `chore:`).
 - **Changes:** see [CHANGELOG.md](CHANGELOG.md).
+
+## License
+
+Released under the [MIT License](LICENSE).

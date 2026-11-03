@@ -31,6 +31,7 @@ API RESTful desarrollada con Laravel 13 para gestionar productos y sus precios e
 - [Documentación de la API](#documentación-de-la-api)
 - [Estructura del proyecto](#estructura-del-proyecto)
 - [Flujo de trabajo en Git](#flujo-de-trabajo-en-git)
+- [Licencia](#licencia)
 
 ## Descripción general
 
@@ -453,3 +454,7 @@ tests/                       Pruebas de integración, unitarias y de arquitectur
   - `release/*`: prepara una versión, se fusiona en `main` y de regreso en `develop`.
 - **Commits:** [Conventional Commits](https://www.conventionalcommits.org/) en inglés (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `perf:`, `build:`, `ci:`, `chore:`).
 - **Cambios:** consulte [CHANGELOG.md](CHANGELOG.md).
+
+## Licencia
+
+Publicado bajo la [licencia MIT](LICENSE).

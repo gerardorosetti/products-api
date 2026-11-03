@@ -5,9 +5,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+
+- MIT license file.
+
 ### Changed
 
 - Documentation is now in English, with Spanish translations (`README.es.md`, `SECURITY.es.md`).
+- The README starts with an overview, explains the decimal precision of amounts and notes the SQLite limits of the standalone mode.
 
 ## [1.0.1] - 2026-11-02
 
