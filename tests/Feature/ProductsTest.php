@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Actions\Product\CreateProductAction;
+use App\Actions\Product\UpdateProductAction;
 use App\Models\Currency;
 use App\Models\Product;
 use App\Models\ProductPrice;
@@ -454,4 +455,16 @@ it('still rejects JSON numbers with more than two decimals', function (): void {
     $this->postJson(route('products.store'), productPayload($base, ['price' => 10.123]))
         ->assertUnprocessable()
         ->assertJsonValidationErrors('price');
+});
+
+it('refuses a base currency change when a price in that currency appeared after validation', function (): void {
+    $product = Product::factory()->create();
+    $price = ProductPrice::factory()->create(['product_id' => $product->id]);
+
+    expect(fn () => app(UpdateProductAction::class)->handle($product, ['currency_id' => $price->currency_id]))
+        ->toThrow(function (ValidationException $e): void {
+            expect($e->errors())->toHaveKey('currency_id');
+        });
+
+    expect($product->fresh()?->currency_id)->not->toBe($price->currency_id);
 });
