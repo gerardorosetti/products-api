@@ -480,3 +480,22 @@ it('enforces token abilities on top of role permissions', function (): void {
     $this->postJson(route('products.store'), productPayload($currency))->assertForbidden();
     $this->getJson(route('currencies.index'))->assertForbidden();
 });
+
+it('treats percent, underscore and backslash in the search as literal characters', function (): void {
+    actingAsViewer();
+    Product::factory()->create(['name' => '100% Cotton', 'description' => 'Shirt']);
+    Product::factory()->create(['name' => '1000 Cotton', 'description' => 'Shirt']);
+    Product::factory()->create(['name' => 'snake_case', 'description' => 'Shirt']);
+    Product::factory()->create(['name' => 'snakeXcase', 'description' => 'Shirt']);
+    Product::factory()->create(['name' => 'Back\slash', 'description' => 'Shirt']);
+    Product::factory()->create(['name' => 'Plain', 'description' => 'Shirt']);
+
+    $names = fn (string $search): array => $this->getJson(route('products.index', ['search' => $search]))
+        ->assertOk()
+        ->json('data.*.name');
+
+    expect($names('100%'))->toBe(['100% Cotton'])
+        ->and($names('snake_case'))->toBe(['snake_case'])
+        ->and($names('%'))->toBe(['100% Cotton'])
+        ->and($names('Back\sl'))->toBe(['Back\slash']);
+});

@@ -111,11 +111,16 @@ class Product extends Model
         $sort = is_string($filters['sort'] ?? null) ? $filters['sort'] : self::DEFAULT_SORT;
 
         $query
-            ->when(is_string($search) && $search !== '', fn (Builder $q) => $q->where(
-                fn (Builder $q) => $q
-                    ->whereLike('name', '%'.$search.'%', caseSensitive: false)
-                    ->orWhereLike('description', '%'.$search.'%', caseSensitive: false),
-            ))
+            ->when(is_string($search) && $search !== '', function (Builder $q) use ($search): void {
+                // Explicit ESCAPE keeps % and _ literal on every driver (SQLite has no default escape character).
+                $pattern = '%'.addcslashes($search, '\\%_').'%';
+
+                $q->where(
+                    fn (Builder $q) => $q
+                        ->whereRaw("lower(name) like lower(?) escape '\'", [$pattern])
+                        ->orWhereRaw("lower(description) like lower(?) escape '\'", [$pattern]),
+                );
+            })
             ->when($currencyId !== null, fn (Builder $q) => $q->where('currency_id', $currencyId))
             ->when($minPrice !== null, fn (Builder $q) => $q->where('price', '>=', $minPrice))
             ->when($maxPrice !== null, fn (Builder $q) => $q->where('price', '<=', $maxPrice));
