@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\User;
 use Carbon\Carbon;
 use Database\Seeders\DatabaseSeeder;
+use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\PersonalAccessToken;
 
 beforeEach(function (): void {
@@ -122,4 +123,19 @@ it('throttles login after five attempts', function (): void {
 
 it('seeds exactly the two demo users', function (): void {
     expect(User::query()->count())->toBe(2);
+});
+
+it('runs exactly one hash check for an unknown email and never hashes per request', function (): void {
+    // Warm the cached dummy hash so only the steady-state behaviour is measured.
+    $this->postJson(route('auth.login'), ['email' => 'ghost@example.com', 'password' => 'whatever-123'])
+        ->assertUnprocessable();
+
+    Hash::spy();
+
+    $this->postJson(route('auth.login'), ['email' => 'ghost@example.com', 'password' => 'whatever-123'])
+        ->assertUnprocessable()
+        ->assertJsonPath('errors.email.0', 'The provided credentials are incorrect.');
+
+    Hash::shouldNotHaveReceived('make');
+    Hash::shouldHaveReceived('check')->once();
 });
