@@ -40,7 +40,7 @@ it('lists currencies for a viewer', function (): void {
 
 it('shows a currency with the exchange rate as an 8 decimal string', function (): void {
     actingAsViewer();
-    $currency = Currency::factory()->create(['exchange_rate' => 1]);
+    $currency = Currency::factory()->create(['exchange_rate' => '1.00000000']);
 
     $this->getJson(route('currencies.show', $currency))
         ->assertOk()
@@ -104,8 +104,8 @@ it('validates the currency payload on create', function (array $overrides, strin
     'missing symbol' => [['symbol' => null], 'symbol'],
     'symbol too long' => [['symbol' => str_repeat('s', 11)], 'symbol'],
     'missing rate' => [['exchange_rate' => null], 'exchange_rate'],
-    'zero rate' => [['exchange_rate' => 0], 'exchange_rate'],
-    'negative rate' => [['exchange_rate' => -1], 'exchange_rate'],
+    'zero rate' => [['exchange_rate' => '0'], 'exchange_rate'],
+    'negative rate' => [['exchange_rate' => '-1'], 'exchange_rate'],
     'too many decimals' => [['exchange_rate' => '1.123456789'], 'exchange_rate'],
     'non numeric rate' => [['exchange_rate' => 'abc'], 'exchange_rate'],
     'rate too large' => [['exchange_rate' => '99999999999'], 'exchange_rate'],

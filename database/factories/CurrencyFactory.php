@@ -21,7 +21,7 @@ class CurrencyFactory extends Factory
             'name' => fake()->unique()->words(2, true),
             'code' => strtoupper(fake()->unique()->lexify('???')),
             'symbol' => fake()->randomElement(['$', '€', '£', '¥', 'Bs']),
-            'exchange_rate' => fake()->randomFloat(8, 0.01, 5000),
+            'exchange_rate' => number_format(fake()->randomFloat(8, 0.01, 5000), 8, '.', ''),
         ];
     }
 }

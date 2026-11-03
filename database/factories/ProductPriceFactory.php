@@ -22,7 +22,7 @@ class ProductPriceFactory extends Factory
         return [
             'product_id' => Product::factory(),
             'currency_id' => Currency::factory(),
-            'price' => fake()->randomFloat(2, 1, 5000),
+            'price' => number_format(fake()->randomFloat(2, 1, 5000), 2, '.', ''),
         ];
     }
 }

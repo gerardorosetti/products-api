@@ -21,7 +21,7 @@ function productPayload(Currency $currency, array $overrides = []): array
         'price' => '1299.99',
         'currency_id' => $currency->id,
         'tax_cost' => '100.50',
-        'manufacturing_cost' => 800,
+        'manufacturing_cost' => '800.00',
     ], $overrides);
 }
 
@@ -86,7 +86,7 @@ it('creates a product with additional prices in one request', function (): void 
 
     $this->postJson(route('products.store'), productPayload($base, ['prices' => [
         ['currency_id' => $eur->id, 'price' => '1199.00'],
-        ['currency_id' => $gbp->id, 'price' => 1049.5],
+        ['currency_id' => $gbp->id, 'price' => '1049.50'],
     ]]))
         ->assertCreated()
         ->assertJsonCount(2, 'data.prices')
@@ -108,14 +108,14 @@ it('validates the product payload', function (array $overrides, string $field): 
     'name too long' => [['name' => str_repeat('a', 256)], 'name'],
     'missing description' => [['description' => null], 'description'],
     'missing price' => [['price' => null], 'price'],
-    'negative price' => [['price' => -1], 'price'],
+    'negative price' => [['price' => '-1'], 'price'],
     'price too many decimals' => [['price' => '10.999'], 'price'],
     'price not numeric' => [['price' => 'abc'], 'price'],
     'price too large' => [['price' => '1000000000000000'], 'price'],
     'missing currency' => [['currency_id' => null], 'currency_id'],
     'unknown currency' => [['currency_id' => 99999], 'currency_id'],
     'missing tax cost' => [['tax_cost' => null], 'tax_cost'],
-    'negative tax cost' => [['tax_cost' => -0.5], 'tax_cost'],
+    'negative tax cost' => [['tax_cost' => '-0.50'], 'tax_cost'],
     'missing manufacturing cost' => [['manufacturing_cost' => null], 'manufacturing_cost'],
     'prices not an array' => [['prices' => 'x'], 'prices'],
     'price entry without currency' => [['prices' => [['price' => '1.00']]], 'prices.0.currency_id'],
@@ -172,8 +172,8 @@ it('rolls back the product when persisting its prices fails', function (): void 
 
 it('shows a product with its currency and prices', function (): void {
     actingAsViewer();
-    $product = Product::factory()->create(['price' => 10]);
-    ProductPrice::factory()->create(['product_id' => $product->id, 'price' => 9.5]);
+    $product = Product::factory()->create(['price' => '10.00']);
+    ProductPrice::factory()->create(['product_id' => $product->id, 'price' => '9.50']);
 
     $this->getJson(route('products.show', $product))
         ->assertOk()
@@ -210,7 +210,7 @@ it('replaces a product fully with PUT', function (): void {
 
 it('requires every field on PUT but not on PATCH', function (): void {
     actingAsAdmin();
-    $product = Product::factory()->create(['name' => 'Original', 'price' => 50]);
+    $product = Product::factory()->create(['name' => 'Original', 'price' => '50.00']);
 
     $this->putJson(route('products.update', $product), ['name' => 'Only name'])
         ->assertUnprocessable()
@@ -226,7 +226,7 @@ it('still validates fields sent in a PATCH', function (): void {
     actingAsAdmin();
     $product = Product::factory()->create();
 
-    $this->patchJson(route('products.update', $product), ['price' => -5, 'name' => ''])
+    $this->patchJson(route('products.update', $product), ['price' => '-5.00', 'name' => ''])
         ->assertUnprocessable()
         ->assertJsonValidationErrors(['price', 'name']);
 });
@@ -299,9 +299,9 @@ it('filters products by currency and price range', function (): void {
     actingAsViewer();
     $usd = Currency::factory()->create();
     $eur = Currency::factory()->create();
-    Product::factory()->create(['currency_id' => $usd->id, 'price' => 10]);
-    Product::factory()->create(['currency_id' => $usd->id, 'price' => 50]);
-    Product::factory()->create(['currency_id' => $eur->id, 'price' => 50]);
+    Product::factory()->create(['currency_id' => $usd->id, 'price' => '10.00']);
+    Product::factory()->create(['currency_id' => $usd->id, 'price' => '50.00']);
+    Product::factory()->create(['currency_id' => $eur->id, 'price' => '50.00']);
 
     $this->getJson(route('products.index', ['currency_id' => $usd->id]))->assertJsonPath('meta.total', 2);
     $this->getJson(route('products.index', ['min_price' => '20', 'max_price' => '60']))->assertJsonPath('meta.total', 2);
@@ -310,8 +310,8 @@ it('filters products by currency and price range', function (): void {
 
 it('filters products by max_price without min_price', function (): void {
     actingAsViewer();
-    Product::factory()->create(['price' => 10]);
-    Product::factory()->create(['price' => 50]);
+    Product::factory()->create(['price' => '10.00']);
+    Product::factory()->create(['price' => '50.00']);
 
     $this->getJson(route('products.index', ['max_price' => '20']))->assertOk()->assertJsonPath('meta.total', 1);
     $this->getJson(route('products.index', ['min_price' => '', 'max_price' => '20']))->assertOk()->assertJsonPath('meta.total', 1);
@@ -321,11 +321,11 @@ it('filters products by max_price without min_price', function (): void {
 it('sorts products', function (string $sort, array $expected): void {
     actingAsViewer();
     $this->travelTo(now()->subDays(3));
-    Product::factory()->create(['name' => 'B item', 'price' => 20]);
+    Product::factory()->create(['name' => 'B item', 'price' => '20.00']);
     $this->travelTo(now()->addDay());
-    Product::factory()->create(['name' => 'A item', 'price' => 30]);
+    Product::factory()->create(['name' => 'A item', 'price' => '30.00']);
     $this->travelTo(now()->addDay());
-    Product::factory()->create(['name' => 'C item', 'price' => 10]);
+    Product::factory()->create(['name' => 'C item', 'price' => '10.00']);
 
     $names = $this->getJson(route('products.index', ['sort' => $sort]))->assertOk()->json('data.*.name');
 
