@@ -499,3 +499,16 @@ it('treats percent, underscore and backslash in the search as literal characters
         ->and($names('%'))->toBe(['100% Cotton'])
         ->and($names('Back\sl'))->toBe(['Back\slash']);
 });
+
+it('rejects a PATCH without any updatable field', function (): void {
+    actingAsAdmin();
+    $product = Product::factory()->create();
+
+    $this->patchJson(route('products.update', $product), [])
+        ->assertUnprocessable()
+        ->assertJsonPath('code', 'validation_failed')
+        ->assertJsonValidationErrors('fields');
+
+    $this->patchJson(route('products.update', $product), ['unknown' => 'x'])->assertUnprocessable();
+    $this->patchJson(route('products.update', $product), ['name' => 'Renamed'])->assertOk();
+});

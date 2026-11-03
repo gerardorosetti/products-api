@@ -7,8 +7,10 @@ namespace App\Http\Requests\Currency;
 use App\Http\Requests\Concerns\NormalizesDecimalInput;
 use App\Models\Currency;
 use App\Support\Rules;
+use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 final class UpdateCurrencyRequest extends FormRequest
 {
@@ -28,6 +30,14 @@ final class UpdateCurrencyRequest extends FormRequest
         if (is_string($this->input('code'))) {
             $this->merge(['code' => strtoupper(trim($this->input('code')))]);
         }
+    }
+
+    /**
+     * @return list<Closure(Validator): void>
+     */
+    public function after(): array
+    {
+        return [Rules::requireAnyField($this, ['name', 'code', 'symbol', 'exchange_rate'])];
     }
 
     /**

@@ -10,6 +10,7 @@ use App\Support\Rules;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 final class UpdateProductRequest extends FormRequest
 {
@@ -29,6 +30,14 @@ final class UpdateProductRequest extends FormRequest
         if ($this->has('currency_id')) {
             $this->merge(['currency_id' => Rules::castId($this->input('currency_id'))]);
         }
+    }
+
+    /**
+     * @return list<Closure(Validator): void>
+     */
+    public function after(): array
+    {
+        return [Rules::requireAnyField($this, ['name', 'description', 'price', 'currency_id', 'tax_cost', 'manufacturing_cost'])];
     }
 
     /**

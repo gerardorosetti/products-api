@@ -196,3 +196,15 @@ it('keeps full precision for an exchange rate sent as a JSON number', function (
         ->assertCreated()
         ->assertJsonPath('data.exchange_rate', '1234567.12345678');
 });
+
+it('rejects a PATCH without any updatable field', function (): void {
+    actingAsAdmin();
+    $currency = Currency::factory()->create();
+
+    $this->patchJson(route('currencies.update', $currency), [])
+        ->assertUnprocessable()
+        ->assertJsonPath('code', 'validation_failed')
+        ->assertJsonValidationErrors('fields');
+
+    $this->patchJson(route('currencies.update', $currency), ['symbol' => '#'])->assertOk();
+});

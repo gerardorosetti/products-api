@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace App\Support;
 
+use Closure;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Validator;
+
 /**
  * Validation rule sets shared by several form requests.
  */
@@ -27,6 +31,21 @@ final class Rules
     public static function exchangeRate(): array
     {
         return ['required', 'decimal:0,8', 'gt:0', 'max:9999999999'];
+    }
+
+    /**
+     * Validator callback: a PATCH must send at least one of the updatable fields.
+     *
+     * @param  list<string>  $fields
+     * @return Closure(Validator): void
+     */
+    public static function requireAnyField(Request $request, array $fields): Closure
+    {
+        return static function (Validator $validator) use ($request, $fields): void {
+            if ($request->isMethod('PATCH') && ! $request->hasAny($fields)) {
+                $validator->errors()->add('fields', 'At least one of the following fields is required: '.implode(', ', $fields).'.');
+            }
+        };
     }
 
     /**
