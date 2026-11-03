@@ -19,6 +19,13 @@ final class UpdateProductRequest extends FormRequest
         return $product instanceof Product && ($this->user()?->can('update', $product) ?? false);
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('currency_id')) {
+            $this->merge(['currency_id' => Rules::castId($this->input('currency_id'))]);
+        }
+    }
+
     /**
      * PUT replaces the whole resource (all fields required); PATCH accepts any subset.
      *

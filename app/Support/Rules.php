@@ -43,4 +43,12 @@ final class Rules
 
         return array_map(static fn (array $fieldRules): array => ['sometimes', ...$fieldRules], $rules);
     }
+
+    /**
+     * Casts integer-like strings ("1") to int so id comparisons between rules are type-safe.
+     */
+    public static function castId(mixed $value): mixed
+    {
+        return is_string($value) && preg_match('/^[0-9]{1,18}$/', $value) === 1 ? (int) $value : $value;
+    }
 }

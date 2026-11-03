@@ -18,6 +18,13 @@ final class StoreProductPriceRequest extends FormRequest
         return $product instanceof Product && ($this->user()?->can('addPrice', $product) ?? false);
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('currency_id')) {
+            $this->merge(['currency_id' => Rules::castId($this->input('currency_id'))]);
+        }
+    }
+
     /**
      * @return array<string, list<mixed>>
      */

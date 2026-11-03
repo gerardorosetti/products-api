@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Actions\ProductPrice\AddProductPriceAction;
 use App\Models\Currency;
 use App\Models\Product;
 use App\Models\ProductPrice;
+use Illuminate\Validation\ValidationException;
 
 it('requires authentication', function (): void {
     $this->getJson(route('products.prices.index', 1))->assertUnauthorized();
@@ -100,3 +102,23 @@ it('validates the price payload', function (array $payload, string $field): void
     'too many decimals' => [['price' => '1.234'], 'price'],
     'not numeric' => [['price' => 'abc'], 'price'],
 ]);
+
+it('rejects a base-currency price when the currency id is a numeric string', function (): void {
+    actingAsAdmin();
+    $product = Product::factory()->create();
+
+    $this->postJson(route('products.prices.store', $product), ['currency_id' => (string) $product->currency_id, 'price' => '10'])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('currency_id');
+});
+
+it('refuses to add a price in the base currency of the product', function (): void {
+    $product = Product::factory()->create();
+
+    expect(fn () => app(AddProductPriceAction::class)->handle($product, [
+        'currency_id' => $product->currency_id,
+        'price' => '1.00',
+    ]))->toThrow(ValidationException::class);
+
+    expect(ProductPrice::query()->count())->toBe(0);
+});

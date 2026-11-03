@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\ProductPrice;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 function productPayload(Currency $currency, array $overrides = []): array
 {
@@ -378,4 +379,46 @@ it('does not run extra queries as the number of products grows', function (): vo
     $many = $countQueries();
 
     expect($many)->toBe($few);
+});
+
+it('rejects base-currency prices and repeated currencies sent as numeric strings', function (): void {
+    actingAsAdmin();
+    [$base, $eur] = Currency::factory()->count(2)->create();
+
+    $this->postJson(route('products.store'), productPayload($base, ['prices' => [
+        ['currency_id' => (string) $base->id, 'price' => '10.00'],
+    ]]))->assertUnprocessable()->assertJsonValidationErrors('prices.0.currency_id');
+
+    $this->postJson(route('products.store'), productPayload($base, ['prices' => [
+        ['currency_id' => (string) $eur->id, 'price' => '10.00'],
+        ['currency_id' => $eur->id, 'price' => '11.00'],
+    ]]))->assertUnprocessable()->assertJsonValidationErrors('prices.0.currency_id');
+
+    expect(Product::query()->count())->toBe(0);
+});
+
+it('rejects a base currency change to one with a price when the id is a string', function (): void {
+    actingAsAdmin();
+    $product = Product::factory()->create();
+    $price = ProductPrice::factory()->create(['product_id' => $product->id]);
+
+    $this->patchJson(route('products.update', $product), ['currency_id' => (string) $price->currency_id])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('currency_id');
+});
+
+it('refuses to create a product with a price in its base currency', function (): void {
+    $currency = Currency::factory()->create();
+
+    expect(fn () => app(CreateProductAction::class)->handle([
+        'name' => 'Broken',
+        'description' => 'x',
+        'price' => '1.00',
+        'currency_id' => (string) $currency->id,
+        'tax_cost' => '0',
+        'manufacturing_cost' => '0',
+        'prices' => [['currency_id' => $currency->id, 'price' => '1.00']],
+    ]))->toThrow(ValidationException::class);
+
+    expect(Product::query()->count())->toBe(0);
 });

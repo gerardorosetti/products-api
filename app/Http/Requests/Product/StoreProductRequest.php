@@ -16,6 +16,25 @@ final class StoreProductRequest extends FormRequest
         return $this->user()?->can('create', Product::class) ?? false;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $prices = $this->input('prices');
+
+        if (is_array($prices)) {
+            $prices = array_map(
+                static fn (mixed $entry): mixed => is_array($entry) && array_key_exists('currency_id', $entry)
+                    ? [...$entry, 'currency_id' => Rules::castId($entry['currency_id'])]
+                    : $entry,
+                $prices,
+            );
+        }
+
+        $this->merge(array_filter([
+            'currency_id' => Rules::castId($this->input('currency_id')),
+            'prices' => $prices,
+        ], static fn (mixed $value): bool => $value !== null));
+    }
+
     /**
      * @return array<string, list<mixed>>
      */
