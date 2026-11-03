@@ -6,6 +6,13 @@ API RESTful desarrollada con Laravel 13 para gestionar productos y sus precios e
 
 [![CI](https://github.com/gerardorosetti/products-api/actions/workflows/ci.yml/badge.svg)](https://github.com/gerardorosetti/products-api/actions/workflows/ci.yml)
 
+## En resumen
+
+- **Stack:** Laravel 13 (la versión estable actual; la prueba pide Laravel 8 o superior), PHP 8.3+, PostgreSQL 16, Sanctum, Pest.
+- **Pruébala en un minuto:** `docker compose up -d --build`, luego inicia sesión con `admin@example.com` / `Password123!` ([ejemplo](#autenticación)) o abre la documentación interactiva en `http://localhost:8080/docs/api`.
+- **Calidad:** pruebas de integración, unitarias y de arquitectura con una cobertura mínima del 90% exigida por el CI, Larastan nivel 8 y Pint, probadas en PHP 8.3, 8.4 y 8.5.
+- **Por qué está construida así:** consulte [Decisiones técnicas](#decisiones-técnicas).
+
 ## Contenido
 
 - [Descripción general](#descripción-general)
@@ -112,7 +119,7 @@ Requisitos: PHP 8.3 o superior con la extensión `pdo_sqlite` (además de las ex
    ```
    La API estará disponible en `http://localhost:8000/api`.
 
-> La suite de pruebas automatizadas se ejecuta contra PostgreSQL. Usar Docker (o el pipeline de CI) para ejecutarla.
+> Este modo está pensado para probar la API. SQLite no tiene un tipo decimal exacto, así que los montos con más de 15 dígitos significativos pierden precisión; PostgreSQL (Docker) guarda todos los montos de forma exacta. Por el mismo motivo, la suite de pruebas automatizadas se ejecuta solo contra PostgreSQL: usar Docker (o el pipeline de CI) para ejecutarla.
 
 ## Credenciales de prueba
 
@@ -369,7 +376,7 @@ erDiagram
 
 ## Decisiones técnicas
 
-- **Decimales exactos (`numeric(19,4)` y `numeric(18,8)`).** Los montos viajan como cadenas en JSON y la aritmética utiliza `Brick\Math\BigDecimal`, nunca `float`. Se descartaron los centavos enteros porque no se ajustan a divisas con diferentes unidades menores, ni a tasas de cambio con ocho decimales; el punto flotante pierde precisión.
+- **Decimales exactos (`numeric(19,4)` y `numeric(18,8)`).** Los montos viajan como cadenas en JSON y la aritmética utiliza `Brick\Math\BigDecimal`, nunca `float`. Se descartaron los centavos enteros porque no se ajustan a divisas con diferentes unidades menores, ni a tasas de cambio con ocho decimales; el punto flotante pierde precisión. La API acepta y devuelve montos con dos decimales, mientras que las columnas conservan cuatro como margen para cálculos intermedios, de modo que la precisión puede ampliarse sin migrar el esquema.
 - **Los precios adicionales los define el negocio.** Los precios en `product_prices` se almacenan explícitamente, no se calculan a partir de `exchange_rate`, permitiendo que cada mercado tenga su propia fijación de precios. `exchange_rate` es un dato de referencia relativo al USD (las tasas de los seeders son ilustrativas).
 - **Divisa base y un único precio por divisa.** Un producto no puede tener un precio adicional en su propia divisa base (`422`), y solo puede tener un precio por divisa (índice único en `product_id, currency_id`).
 - **Borrado lógico (*soft delete*).** Los productos eliminados permanecen en la base de datos para historial y auditoría, y la API responde `404` ante ellos.

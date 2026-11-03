@@ -6,6 +6,13 @@ RESTful API built with Laravel 13 to manage products and their prices in multipl
 
 [![CI](https://github.com/gerardorosetti/products-api/actions/workflows/ci.yml/badge.svg)](https://github.com/gerardorosetti/products-api/actions/workflows/ci.yml)
 
+## At a glance
+
+- **Stack:** Laravel 13 (the current stable release; the assignment requires Laravel 8 or later), PHP 8.3+, PostgreSQL 16, Sanctum, Pest.
+- **Try it in one minute:** `docker compose up -d --build`, then log in as `admin@example.com` / `Password123!` ([example](#authentication)) or open the interactive docs at `http://localhost:8080/docs/api`.
+- **Quality:** feature, unit and architecture tests with a 90% minimum coverage enforced by CI, Larastan level 8 and Pint, tested on PHP 8.3, 8.4 and 8.5.
+- **Why it is built this way:** see [Technical decisions](#technical-decisions).
+
 ## Contents
 
 - [Overview](#overview)
@@ -112,7 +119,7 @@ Requirements: PHP 8.3 or later with the `pdo_sqlite` extension (in addition to t
    ```
    The API is available at `http://localhost:8000/api`.
 
-> The automated test suite runs against PostgreSQL. Use Docker (or the CI pipeline) to run it.
+> This mode is meant for trying the API. SQLite has no exact decimal type, so amounts with more than 15 significant digits lose precision; PostgreSQL (Docker) stores every amount exactly. For the same reason the automated test suite runs only against PostgreSQL: use Docker (or the CI pipeline) to run it.
 
 ## Demo credentials
 
@@ -369,7 +376,7 @@ erDiagram
 
 ## Technical decisions
 
-- **Exact decimals (`numeric(19,4)` and `numeric(18,8)`).** Amounts travel as strings in JSON and arithmetic uses `Brick\Math\BigDecimal`, never `float`. Integer cents were ruled out because they do not fit currencies with different minor units, nor exchange rates with eight decimals; floating point loses precision.
+- **Exact decimals (`numeric(19,4)` and `numeric(18,8)`).** Amounts travel as strings in JSON and arithmetic uses `Brick\Math\BigDecimal`, never `float`. Integer cents were ruled out because they do not fit currencies with different minor units, nor exchange rates with eight decimals; floating point loses precision. The API accepts and returns amounts with two decimals, while the columns keep four as headroom for intermediate calculations, so the precision can grow without a schema migration.
 - **Additional prices are set by the business.** Prices in `product_prices` are stored explicitly, not calculated from `exchange_rate`, so each market can have its own pricing. `exchange_rate` is reference data relative to USD (the seeded rates are illustrative).
 - **Base currency and one price per currency.** A product cannot have an additional price in its own base currency (`422`), and it can have only one price per currency (unique index on `product_id, currency_id`).
 - **Soft deletes.** Deleted products stay in the database for history and auditing, and the API answers `404` for them.
