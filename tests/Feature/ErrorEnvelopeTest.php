@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Exceptions\CurrencyInUseException;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 
 function apiPath(string $path): string
@@ -85,4 +86,13 @@ it('renders every error as JSON when the API prefix is empty', function (): void
         ->assertNotFound()
         ->assertHeader('Content-Type', 'application/json')
         ->assertExactJson(['message' => 'Resource not found.', 'code' => 'not_found']);
+});
+
+it('does not report expected currency-in-use conflicts to the log', function (): void {
+    Log::spy();
+    Route::get(apiPath('__quiet-conflict'), fn () => throw new CurrencyInUseException);
+
+    $this->getJson(apiPath('__quiet-conflict'))->assertConflict();
+
+    Log::shouldNotHaveReceived('error');
 });

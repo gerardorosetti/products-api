@@ -12,4 +12,12 @@ final class CurrencyInUseException extends RuntimeException
     {
         parent::__construct($message);
     }
+
+    /**
+     * An expected business conflict, not a failure worth logging.
+     */
+    public function report(): bool
+    {
+        return false;
+    }
 }
