@@ -27,7 +27,8 @@ FROM base AS dev
 
 # DEV ONLY: runs as root (php-fpm -R) because bind mounts from Windows/macOS hosts are root-owned,
 # which would make storage/ and the sources unwritable for www-data. The prod target is non-root.
-RUN install-php-extensions pcov
+# pcov is built from its pinned GitHub release so the image does not depend on PECL being reachable.
+RUN install-php-extensions krakjoe/pcov@v1.0.12
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 COPY docker/php/fpm-dev.conf /usr/local/etc/php-fpm.d/zz-dev.conf
 
