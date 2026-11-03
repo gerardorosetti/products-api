@@ -3,7 +3,20 @@
 Todos los cambios relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
-## [1.0.0] - 2026-11-03
+## [1.0.1] - 2026-11-02
+
+### Corregido
+
+- La documentación interactiva (`/docs/api`) respondía `403` fuera del entorno `local`.
+- La búsqueda de productos devolvía `500` en PHP 8.3 por el carácter de escape usado en `LIKE`.
+- La imagen Docker de desarrollo ya no depende de PECL para instalar pcov.
+- Las pruebas se ejecutan siempre con `APP_ENV=testing`, también dentro del contenedor.
+
+### Cambiado
+
+- CI más rápido: un solo job de calidad (Pint, Larastan, auditoría y escaneo de secretos), una ejecución de pruebas por versión de PHP y caché de capas Docker.
+
+## [1.0.0] - 2026-11-02
 
 ### Añadido
 
@@ -20,4 +33,5 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - Entorno Docker (PHP-FPM, nginx, PostgreSQL 16) y modo sin Docker con SQLite.
 - Pruebas con Pest (feature, unit y arquitectura), Larastan nivel 8, Pint y CI en GitHub Actions.
 
+[1.0.1]: https://github.com/gerardorosetti/products-api/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/gerardorosetti/products-api/releases/tag/v1.0.0
