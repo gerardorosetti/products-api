@@ -122,3 +122,13 @@ it('refuses to add a price in the base currency of the product', function (): vo
 
     expect(ProductPrice::query()->count())->toBe(0);
 });
+
+it('keeps full precision for a price sent as a JSON number', function (): void {
+    actingAsAdmin();
+    $product = Product::factory()->create();
+    $currency = Currency::factory()->create();
+
+    $this->postJson(route('products.prices.store', $product), ['currency_id' => $currency->id, 'price' => 1234567890123.45])
+        ->assertCreated()
+        ->assertJsonPath('data.price', '1234567890123.45');
+});

@@ -188,3 +188,11 @@ it('refuses to delete a currency used by a product price', function (): void {
         ->assertConflict()
         ->assertJsonPath('code', 'currency_in_use');
 });
+
+it('keeps full precision for an exchange rate sent as a JSON number', function (): void {
+    actingAsAdmin();
+
+    $this->postJson(route('currencies.store'), ['name' => 'Test', 'code' => 'TST', 'symbol' => 'T', 'exchange_rate' => 1234567.12345678])
+        ->assertCreated()
+        ->assertJsonPath('data.exchange_rate', '1234567.12345678');
+});

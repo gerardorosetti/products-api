@@ -422,3 +422,36 @@ it('refuses to create a product with a price in its base currency', function ():
 
     expect(Product::query()->count())->toBe(0);
 });
+
+it('keeps full precision for amounts sent as JSON numbers', function (): void {
+    actingAsAdmin();
+    $base = Currency::factory()->create();
+    $eur = Currency::factory()->create();
+
+    $response = $this->postJson(route('products.store'), productPayload($base, [
+        'price' => 1234567890123.45,
+        'tax_cost' => 0.1,
+        'manufacturing_cost' => 0.29,
+        'prices' => [['currency_id' => $eur->id, 'price' => 999999999999.99]],
+    ]))->assertCreated()
+        ->assertJsonPath('data.price', '1234567890123.45')
+        ->assertJsonPath('data.tax_cost', '0.10')
+        ->assertJsonPath('data.manufacturing_cost', '0.29')
+        ->assertJsonPath('data.prices.0.price', '999999999999.99');
+
+    $product = Product::query()->findOrFail($response->json('data.id'));
+    expect($product->price)->toBe('1234567890123.4500');
+
+    $this->patchJson(route('products.update', $product), ['price' => 9007199254740.93])
+        ->assertOk()
+        ->assertJsonPath('data.price', '9007199254740.93');
+});
+
+it('still rejects JSON numbers with more than two decimals', function (): void {
+    actingAsAdmin();
+    $base = Currency::factory()->create();
+
+    $this->postJson(route('products.store'), productPayload($base, ['price' => 10.123]))
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('price');
+});

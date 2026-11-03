@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Product;
 
+use App\Http\Requests\Concerns\NormalizesDecimalInput;
 use App\Models\Product;
 use App\Support\Rules;
 use Closure;
@@ -12,6 +13,8 @@ use Illuminate\Validation\Rule;
 
 final class UpdateProductRequest extends FormRequest
 {
+    use NormalizesDecimalInput;
+
     public function authorize(): bool
     {
         $product = $this->route('product');
@@ -21,6 +24,8 @@ final class UpdateProductRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $this->normalizeDecimalInput(['price', 'tax_cost', 'manufacturing_cost']);
+
         if ($this->has('currency_id')) {
             $this->merge(['currency_id' => Rules::castId($this->input('currency_id'))]);
         }

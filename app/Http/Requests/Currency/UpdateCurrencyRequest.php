@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Currency;
 
+use App\Http\Requests\Concerns\NormalizesDecimalInput;
 use App\Models\Currency;
 use App\Support\Rules;
 use Illuminate\Foundation\Http\FormRequest;
@@ -11,6 +12,8 @@ use Illuminate\Validation\Rule;
 
 final class UpdateCurrencyRequest extends FormRequest
 {
+    use NormalizesDecimalInput;
+
     public function authorize(): bool
     {
         $currency = $this->route('currency');
@@ -20,6 +23,8 @@ final class UpdateCurrencyRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $this->normalizeDecimalInput(['exchange_rate']);
+
         if (is_string($this->input('code'))) {
             $this->merge(['code' => strtoupper(trim($this->input('code')))]);
         }

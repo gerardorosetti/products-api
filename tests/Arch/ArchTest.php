@@ -26,7 +26,8 @@ arch('actions are final and readonly')
 
 arch('policies and form requests are final')
     ->expect(['App\Policies', 'App\Http\Requests'])
-    ->toBeFinal();
+    ->toBeFinal()
+    ->ignoring(['App\Policies\Concerns', 'App\Http\Requests\Concerns']);
 
 it('does not cast model attributes to float', function (): void {
     foreach ([Currency::class, Product::class, ProductPrice::class, User::class] as $model) {
