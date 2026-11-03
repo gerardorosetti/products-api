@@ -5,6 +5,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-11-02
+
 ### Added
 
 - MIT license file.
@@ -44,6 +46,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Docker environment (PHP-FPM, nginx, PostgreSQL 16) and a standalone mode with SQLite.
 - Tests with Pest (feature, unit and architecture), Larastan level 8, Pint and CI on GitHub Actions.
 
-[Unreleased]: https://github.com/gerardorosetti/products-api/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/gerardorosetti/products-api/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/gerardorosetti/products-api/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/gerardorosetti/products-api/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/gerardorosetti/products-api/releases/tag/v1.0.0
