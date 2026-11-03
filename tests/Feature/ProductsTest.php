@@ -481,13 +481,14 @@ it('enforces token abilities on top of role permissions', function (): void {
     $this->getJson(route('currencies.index'))->assertForbidden();
 });
 
-it('treats percent, underscore and backslash in the search as literal characters', function (): void {
+it('treats percent, underscore, backslash and the escape character in the search as literal characters', function (): void {
     actingAsViewer();
     Product::factory()->create(['name' => '100% Cotton', 'description' => 'Shirt']);
     Product::factory()->create(['name' => '1000 Cotton', 'description' => 'Shirt']);
     Product::factory()->create(['name' => 'snake_case', 'description' => 'Shirt']);
     Product::factory()->create(['name' => 'snakeXcase', 'description' => 'Shirt']);
     Product::factory()->create(['name' => 'Back\slash', 'description' => 'Shirt']);
+    Product::factory()->create(['name' => 'Sale! Now', 'description' => 'Shirt']);
     Product::factory()->create(['name' => 'Plain', 'description' => 'Shirt']);
 
     $names = fn (string $search): array => $this->getJson(route('products.index', ['search' => $search]))
@@ -497,7 +498,9 @@ it('treats percent, underscore and backslash in the search as literal characters
     expect($names('100%'))->toBe(['100% Cotton'])
         ->and($names('snake_case'))->toBe(['snake_case'])
         ->and($names('%'))->toBe(['100% Cotton'])
-        ->and($names('Back\sl'))->toBe(['Back\slash']);
+        ->and($names('Back\sl'))->toBe(['Back\slash'])
+        ->and($names('e! N'))->toBe(['Sale! Now'])
+        ->and($names('!%'))->toBe([]);
 });
 
 it('rejects a PATCH without any updatable field', function (): void {
