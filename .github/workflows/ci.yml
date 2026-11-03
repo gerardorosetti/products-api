@@ -269,6 +269,15 @@ jobs:
           echo "Viewer POST /api/products -> $status"
           test "$status" = "403"
 
+      - name: Check security headers (strict CSP on the API, none on the docs UI)
+        run: |
+          curl -fsS -D - -o /dev/null http://localhost:8080/api/health \
+            | grep -i "^content-security-policy: default-src 'none'"
+          if curl -fsS -D - -o /dev/null http://localhost:8080/docs/api | grep -qi '^content-security-policy'; then
+            echo "The docs UI must not receive the API Content-Security-Policy" >&2
+            exit 1
+          fi
+
       - name: Run the Postman collection (Newman)
         run: |
           docker compose exec -T app php artisan migrate:fresh --seed --force
