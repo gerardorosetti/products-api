@@ -114,9 +114,11 @@ El seeder inicializa dos usuarios predeterminados asociados a roles RBAC:
 
 La contraseña por defecto es parametrizable mediante la variable de entorno `SEED_USER_PASSWORD`.
 
+> **Advertencia:** `APP_DEBUG=true` (en `.env.example` y `docker-compose.yml`) y los usuarios sembrados con contraseña conocida son valores por defecto de **desarrollo**. En producción usa `APP_DEBUG=false`, define `SEED_USER_PASSWORD` o elimina esos usuarios (ver `SECURITY.md`).
+
 ## Autenticación
 
-La autenticación emplea tokens personales opacos emitidos por Laravel Sanctum cuyas habilidades reflejan los permisos del usuario.
+La autenticación emplea tokens personales opacos emitidos por Laravel Sanctum cuyas habilidades reflejan los permisos del usuario. Las políticas exigen ambas condiciones: el usuario debe tener el permiso **y** el token debe incluirlo como habilidad, de modo que un token restringido no puede hacer más que sus habilidades. Los tokens expirados se eliminan a diario con `sanctum:prune-expired` (requiere ejecutar el planificador: `php artisan schedule:work` o una entrada cron con `schedule:run`).
 
 Solicitud de inicio de sesión:
 ```bash
@@ -189,6 +191,8 @@ curl -s -X GET "http://localhost:8080/api/products?search=Monitor&currency_id=1&
   -H "Authorization: Bearer <token>" \
   -H "Accept: application/json"
 ```
+
+Los importes (`price`, `tax_cost`, `manufacturing_cost`, `exchange_rate`) pueden enviarse como cadenas decimales (recomendado) o como números JSON; ambos conservan la precisión completa, pero las cadenas evitan ambigüedades de redondeo en el cliente. Las peticiones `PATCH` deben incluir al menos un campo actualizable.
 
 Valores permitidos en `sort`: `name`, `-name`, `price`, `-price`, `created_at`, `-created_at`. Límite máximo de `per_page`: 100.
 
