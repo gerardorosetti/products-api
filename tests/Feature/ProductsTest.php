@@ -7,9 +7,11 @@ use App\Actions\Product\UpdateProductAction;
 use App\Models\Currency;
 use App\Models\Product;
 use App\Models\ProductPrice;
+use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Laravel\Sanctum\Sanctum;
 
 function productPayload(Currency $currency, array $overrides = []): array
 {
@@ -467,4 +469,14 @@ it('refuses a base currency change when a price in that currency appeared after 
         });
 
     expect($product->fresh()?->currency_id)->not->toBe($price->currency_id);
+});
+
+it('enforces token abilities on top of role permissions', function (): void {
+    $admin = User::factory()->admin()->create();
+    Sanctum::actingAs($admin, ['products.view']);
+    $currency = Currency::factory()->create();
+
+    $this->getJson(route('products.index'))->assertOk();
+    $this->postJson(route('products.store'), productPayload($currency))->assertForbidden();
+    $this->getJson(route('currencies.index'))->assertForbidden();
 });
