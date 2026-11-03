@@ -4,6 +4,7 @@ on:
   push:
     branches: [main, develop]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -13,13 +14,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint:
-    name: Lint (Pint)
+  quality:
+    name: Quality (style, static analysis, security)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Checkout (full history for the secret scan)
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Set up PHP 8.4
         uses: shivammathur/setup-php@v2
@@ -33,7 +36,7 @@ jobs:
         run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
 
       - name: Cache Composer packages
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: composer-${{ runner.os }}-php8.4-${{ hashFiles('composer.lock') }}
@@ -42,45 +45,24 @@ jobs:
       - name: Install dependencies
         run: composer install --prefer-dist --no-interaction --no-progress
 
-      - name: Check code style
+      - name: Check code style (Pint)
         run: vendor/bin/pint --test
 
-  static-analysis:
-    name: Static analysis (Larastan)
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up PHP 8.4
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: "8.4"
-          tools: composer:v2
-          coverage: none
-
-      - name: Resolve Composer cache directory
-        id: composer-cache
-        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
-
-      - name: Cache Composer packages
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.composer-cache.outputs.dir }}
-          key: composer-${{ runner.os }}-php8.4-${{ hashFiles('composer.lock') }}
-          restore-keys: composer-${{ runner.os }}-php8.4-
-
-      - name: Install dependencies
-        run: composer install --prefer-dist --no-interaction --no-progress
-
-      - name: Run PHPStan
+      - name: Run static analysis (Larastan)
         run: vendor/bin/phpstan analyse --memory-limit=1G --no-progress
+
+      - name: Audit locked dependencies
+        run: composer audit --locked
+
+      - name: Scan history for secrets (gitleaks)
+        run: |
+          docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.21.2 \
+            git /repo --no-banner --redact
 
   tests:
     name: Tests (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -108,7 +90,7 @@ jobs:
       DB_PASSWORD: products_api
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up PHP ${{ matrix.php }}
         uses: shivammathur/setup-php@v2
@@ -123,7 +105,7 @@ jobs:
         run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
 
       - name: Cache Composer packages
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: composer-${{ runner.os }}-php${{ matrix.php }}-${{ hashFiles('composer.lock') }}
@@ -137,20 +119,17 @@ jobs:
           cp .env.example .env
           php artisan key:generate --ansi
 
-      - name: Run tests
-        run: php artisan test --compact
-
-      - name: Run tests with coverage gate (90%)
-        if: matrix.php == '8.4'
-        run: php artisan test --coverage --min=90
+      # The suite runs once per PHP version; on 8.4 that single run also enforces the coverage gate.
+      - name: Run tests${{ matrix.php == '8.4' && ' with coverage gate (90%)' || '' }}
+        run: php artisan test ${{ matrix.php == '8.4' && '--coverage --min=90' || '--compact' }}
 
   standalone:
     name: Standalone mode (SQLite)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up PHP 8.4
         uses: shivammathur/setup-php@v2
@@ -165,7 +144,7 @@ jobs:
         run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
 
       - name: Cache Composer packages
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: composer-${{ runner.os }}-php8.4-${{ hashFiles('composer.lock') }}
@@ -187,7 +166,6 @@ jobs:
             sleep 1
           done
           echo "API did not become healthy" >&2
-          cat serve.log
           exit 1
 
       - name: Smoke test (login and list products)
@@ -203,41 +181,33 @@ jobs:
         if: failure()
         run: cat serve.log
 
-  security:
-    name: Security (audit and secrets)
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Checkout (full history)
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up PHP 8.4
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: "8.4"
-          tools: composer:v2
-          coverage: none
-
-      - name: Audit locked dependencies
-        run: composer audit --locked
-
-      - name: Scan history for secrets (gitleaks)
-        run: |
-          docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.21.2 \
-            git /repo --no-banner --redact
-
   docker:
     name: Docker stack
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
-      - name: Build and start the stack
-        run: docker compose up -d --build --wait
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      # Builds the compose "app" service with the GitHub Actions layer cache, so unchanged
+      # layers (system packages, PHP extensions, Composer dependencies) are not rebuilt.
+      - name: Build the app image (dev target, cached)
+        uses: docker/bake-action@v7
+        with:
+          source: .
+          files: docker-compose.yml
+          targets: app
+          load: true
+          set: |
+            app.tags=products-api-app
+            app.cache-from=type=gha,scope=dev
+            app.cache-to=type=gha,scope=dev,mode=max
+
+      - name: Start the stack
+        run: docker compose up -d --no-build --wait
 
       - name: Wait for the API through nginx
         run: |
@@ -289,11 +259,20 @@ jobs:
 
       - name: Check that docs/openapi.json is up to date
         run: |
-          docker compose exec -T app php artisan scramble:export --path=docs/openapi.json
+          docker compose exec -T -e APP_URL=http://localhost:8080 app php artisan scramble:export --path=docs/openapi.json
           git diff --exit-code -- docs/openapi.json
 
-      - name: Build production image
-        run: docker build --target prod .
+      # Reuses the base and Composer layers cached by the dev build.
+      - name: Build the production image (cached)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: prod
+          outputs: type=cacheonly
+          cache-from: |
+            type=gha,scope=dev
+            type=gha,scope=prod
+          cache-to: type=gha,scope=prod,mode=max
 
       - name: Print stack logs on failure
         if: failure()
