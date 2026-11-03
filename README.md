@@ -1,126 +1,138 @@
 # Products API
 
-API RESTful en Laravel 13 para gestionar productos y sus precios en múltiples divisas.
+**English** · [Español](README.es.md)
+
+RESTful API built with Laravel 13 to manage products and their prices in multiple currencies.
 
 [![CI](https://github.com/gerardorosetti/products-api/actions/workflows/ci.yml/badge.svg)](https://github.com/gerardorosetti/products-api/actions/workflows/ci.yml)
 
-## Contenido
+## Contents
 
-- [Resumen](#resumen)
-- [Stack tecnológico](#stack-tecnológico)
-- [Inicio rápido con Docker](#inicio-rápido-con-docker)
-- [Ejecución sin Docker (standalone)](#ejecución-sin-docker-standalone)
-- [Credenciales de prueba](#credenciales-de-prueba)
-- [Autenticación](#autenticación)
+- [Overview](#overview)
+- [Tech stack](#tech-stack)
+- [Quick start with Docker](#quick-start-with-docker)
+- [Running without Docker (standalone)](#running-without-docker-standalone)
+- [Demo credentials](#demo-credentials)
+- [Authentication](#authentication)
 - [Endpoints](#endpoints)
-- [Ejemplos de uso](#ejemplos-de-uso)
-- [Formato de errores](#formato-de-errores)
-- [Modelo de datos](#modelo-de-datos)
-- [Decisiones técnicas](#decisiones-técnicas)
-- [Seguridad](#seguridad)
-- [Calidad y pruebas](#calidad-y-pruebas)
-- [Documentación de la API](#documentación-de-la-api)
-- [Estructura del proyecto](#estructura-del-proyecto)
-- [Flujo de trabajo Git](#flujo-de-trabajo-git)
+- [Usage examples](#usage-examples)
+- [Error format](#error-format)
+- [Data model](#data-model)
+- [Technical decisions](#technical-decisions)
+- [Security](#security)
+- [Quality and testing](#quality-and-testing)
+- [API documentation](#api-documentation)
+- [Project structure](#project-structure)
+- [Git workflow](#git-workflow)
 
-## Resumen
+## Overview
 
-Products API permite crear, consultar, actualizar y eliminar productos, y registrar sus precios en distintas divisas. Los importes se guardan con tipos decimales exactos (sin errores de redondeo) y el acceso se controla con roles y políticas.
+Products API lets you create, read, update and delete products and register their prices in different currencies. Amounts are stored with exact decimal types (no rounding errors) and access is controlled with roles and policies.
 
-Endpoints obligatorios requeridos por la consigna:
-- `GET /products`: Obtener lista paginada de productos con filtros y ordenación.
-- `POST /products`: Crear un nuevo producto con divisa base y precios adicionales opcionales.
-- `GET /products/{id}`: Obtener el detalle de un producto por ID con sus relaciones.
-- `PUT /products/{id}`: Actualizar y reemplazar por completo los datos de un producto.
-- `DELETE /products/{id}`: Eliminar un producto mediante borrado lógico (*soft delete*).
-- `GET /products/{id}/prices`: Obtener la lista de precios adicionales de un producto.
-- `POST /products/{id}/prices`: Crear un nuevo precio adicional para un producto.
+Endpoints required by the assignment:
 
-Endpoints complementarios incorporados:
-- Autenticación: `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`.
-- Mantenimiento de divisas: `GET /currencies`, `POST /currencies`, `GET /currencies/{id}`, `PUT /currencies/{id}`, `PATCH /currencies/{id}`, `DELETE /currencies/{id}`.
-- Actualización parcial de producto: `PATCH /products/{id}`.
-- Estado operativo del servicio: `GET /health`.
+- `GET /products`: paginated product list with filters and sorting.
+- `POST /products`: create a product with its base currency and, optionally, additional prices.
+- `GET /products/{id}`: product details, including its currency and prices.
+- `PUT /products/{id}`: fully replace a product.
+- `DELETE /products/{id}`: delete a product (soft delete).
+- `GET /products/{id}/prices`: list the additional prices of a product.
+- `POST /products/{id}/prices`: add a price in another currency to a product.
 
-## Stack tecnológico
+Additional endpoints:
 
-- PHP: ^8.3 (entorno Docker con PHP 8.4-fpm-alpine)
+- Authentication: `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`.
+- Currency management: `GET /currencies`, `POST /currencies`, `GET /currencies/{id}`, `PUT /currencies/{id}`, `PATCH /currencies/{id}`, `DELETE /currencies/{id}`.
+- Partial product update: `PATCH /products/{id}`.
+- Service health: `GET /health`.
+
+## Tech stack
+
+- PHP `^8.3` (the Docker image uses PHP 8.4 FPM on Alpine)
 - Framework: Laravel 13 (`laravel/framework ^13.17`)
-- Autenticación: Laravel Sanctum (`laravel/sanctum ^4.3`)
-- Autorización RBAC: Spatie Laravel Permission (`spatie/laravel-permission ^8.3`)
-- Documentación OpenAPI: Scramble (`dedoc/scramble ^0.13.52`, especificación OpenAPI 3.1)
-- Base de datos relacional: PostgreSQL 16 (`postgres:16-alpine`)
-- Servidor web: nginx (`nginx:stable-alpine`)
+- Authentication: Laravel Sanctum (`laravel/sanctum ^4.3`)
+- Roles and permissions: Spatie Laravel Permission (`spatie/laravel-permission ^8.3`)
+- OpenAPI documentation: Scramble (`dedoc/scramble ^0.13.52`, OpenAPI 3.1)
+- Database: PostgreSQL 16 (`postgres:16-alpine`)
+- Web server: nginx (`nginx:stable-alpine`)
 - Testing: Pest (`pestphp/pest ^4.7`, `pestphp/pest-plugin-laravel ^4.1`)
-- Análisis estático: Larastan nivel 8 (`larastan/larastan ^3.13`)
-- Linter y formato de código: Laravel Pint (`laravel/pint ^1.27`)
-- Orquestación: Docker Compose
-- Integración continua: GitHub Actions
+- Static analysis: Larastan level 8 (`larastan/larastan ^3.13`)
+- Code style: Laravel Pint (`laravel/pint ^1.27`)
+- Orchestration: Docker Compose
+- Continuous integration: GitHub Actions
 
-## Inicio rápido con Docker
+## Quick start with Docker
 
-El entorno contenedorizado inicializa automáticamente los servicios de base de datos, servidor web y runtime PHP:
+The only requirement is Docker. One command starts the database, the web server and the PHP runtime:
 
 ```bash
 docker compose up -d --build
 ```
 
-Una vez levantados los contenedores:
-- API disponible en: `http://localhost:8080/api`
-- Documentación interactiva Scramble: `http://localhost:8080/docs/api`
+Once the containers are up:
 
-El script de entrada del contenedor (`docker/php/entrypoint.sh`) espera la disponibilidad de PostgreSQL, ejecuta las migraciones pendientes y, si la variable `APP_SEED` está activa (por defecto en `docker-compose.yml`), corre los seeders automáticamente.
+- API: `http://localhost:8080/api`
+- Interactive documentation (Scramble): `http://localhost:8080/docs/api`
 
-Comandos para pruebas y verificación dentro del contenedor:
-- Ejecución de tests: `docker compose exec app php artisan test`
-- Tests con reporte de cobertura: `docker compose exec app php artisan test --coverage`
-- Verificación de estilo: `docker compose exec app vendor/bin/pint --test`
-- Análisis estático estricto: `docker compose exec app vendor/bin/phpstan analyse --memory-limit=1G`
+The container entrypoint (`docker/php/entrypoint.sh`) creates `.env` from `.env.example` if it is missing, generates `APP_KEY`, waits for PostgreSQL, runs pending migrations and, when `APP_SEED=true` (the default in `docker-compose.yml`), runs the seeders. The seeders are idempotent, so restarting the stack does not duplicate data.
 
-Para detener y destruir los contenedores junto a sus volúmenes asociados:
+Tests and checks inside the container:
+
+| Task | Command |
+| :--- | :--- |
+| Run the tests | `docker compose exec app php artisan test` |
+| Tests with coverage | `docker compose exec app php artisan test --coverage` |
+| Code style | `docker compose exec app vendor/bin/pint --test` |
+| Static analysis | `docker compose exec app vendor/bin/phpstan analyse --memory-limit=1G` |
+
+The tests use a separate `testing` database, so they never touch the development data.
+
+To stop the stack and remove its volumes:
+
 ```bash
 docker compose down -v
 ```
 
-## Ejecución sin Docker (standalone)
+## Running without Docker (standalone)
 
-Requisitos locales: PHP >= 8.3 con extensiones `pdo_sqlite`, `bcmath` e `intl`, además de Composer.
+Requirements: PHP 8.3 or later with the `pdo_sqlite` extension (in addition to the extensions Laravel requires) and Composer. This mode uses SQLite and needs no database server.
 
-1. Instalar dependencias del proyecto:
+1. Install the dependencies:
    ```bash
    composer install
    ```
-2. Inicializar entorno local con SQLite:
+2. Prepare the environment:
    ```bash
    composer setup
    ```
-   El script copia `.env.example`, genera la clave `APP_KEY`, crea el archivo `database/database.sqlite` y aplica migraciones junto a seeders.
-3. Iniciar el servidor de desarrollo:
+   This copies `.env.example` to `.env`, generates `APP_KEY`, creates `database/database.sqlite` and runs the migrations and seeders.
+3. Start the development server:
    ```bash
    php artisan serve
    ```
-   La API queda accesible en `http://localhost:8000/api`.
+   The API is available at `http://localhost:8000/api`.
 
-> Nota: La suite completa de pruebas automáticas está configurada para ejecutarse contra PostgreSQL (disponible en Docker y en el pipeline de CI).
+> The automated test suite runs against PostgreSQL. Use Docker (or the CI pipeline) to run it.
 
-## Credenciales de prueba
+## Demo credentials
 
-El seeder inicializa dos usuarios predeterminados asociados a roles RBAC:
+The seeders create two users:
 
-| Correo electrónico | Contraseña por defecto | Rol | Permisos asignados |
+| Email | Default password | Role | Permissions |
 | :--- | :--- | :--- | :--- |
-| `admin@example.com` | `Password123!` | `admin` | Acceso total: `currencies.view`, `currencies.manage`, `products.view`, `products.create`, `products.update`, `products.delete`, `prices.create`. |
-| `viewer@example.com` | `Password123!` | `viewer` | Solo lectura: consulta de catálogo y divisas (`products.view`, `currencies.view`). |
+| `admin@example.com` | `Password123!` | `admin` | Everything: `currencies.view`, `currencies.manage`, `products.view`, `products.create`, `products.update`, `products.delete`, `prices.create`. |
+| `viewer@example.com` | `Password123!` | `viewer` | Read only: `products.view`, `currencies.view`. |
 
-La contraseña por defecto es parametrizable mediante la variable de entorno `SEED_USER_PASSWORD`.
+The default password can be changed with the `SEED_USER_PASSWORD` environment variable.
 
-> **Advertencia:** `APP_DEBUG=true` (en `.env.example` y `docker-compose.yml`) y los usuarios sembrados con contraseña conocida son valores por defecto de **desarrollo**. En producción usa `APP_DEBUG=false`, define `SEED_USER_PASSWORD` o elimina esos usuarios (ver `SECURITY.md`).
+> **Warning:** `APP_DEBUG=true` (in `.env.example` and `docker-compose.yml`) and the seeded users with a known password are **development** defaults. In production use `APP_DEBUG=false`, set `SEED_USER_PASSWORD` or remove those users (see [SECURITY.md](SECURITY.md)).
 
-## Autenticación
+## Authentication
 
-La autenticación emplea tokens personales opacos emitidos por Laravel Sanctum cuyas habilidades reflejan los permisos del usuario. Las políticas exigen ambas condiciones: el usuario debe tener el permiso **y** el token debe incluirlo como habilidad, de modo que un token restringido no puede hacer más que sus habilidades. Los tokens expirados se eliminan a diario con `sanctum:prune-expired` (requiere ejecutar el planificador: `php artisan schedule:work` o una entrada cron con `schedule:run`).
+Authentication uses opaque personal access tokens issued by Laravel Sanctum. Each token carries the user's permissions as abilities, and the policies require both: the user must have the permission **and** the token must include it as an ability. A token issued with fewer abilities is limited to them.
 
-Solicitud de inicio de sesión:
+Log in:
+
 ```bash
 curl -s -X POST http://localhost:8080/api/auth/login \
   -H "Accept: application/json" \
@@ -128,50 +140,72 @@ curl -s -X POST http://localhost:8080/api/auth/login \
   -d '{"email":"admin@example.com","password":"Password123!"}'
 ```
 
-El endpoint responde con el token Bearer en `data.token` y su fecha de expiración (`data.expires_at`). Las solicitudes subsecuentes deben incluir la cabecera:
+Response:
+
+```json
+{
+  "data": {
+    "token": "1|<token>",
+    "token_type": "Bearer",
+    "expires_at": "2026-11-04T02:23:52+00:00",
+    "user": {
+      "id": 1,
+      "name": "Admin User",
+      "email": "admin@example.com",
+      "roles": ["admin"],
+      "permissions": ["currencies.manage", "currencies.view", "prices.create", "products.create", "products.delete", "products.update", "products.view"]
+    }
+  }
+}
+```
+
+Send the token in every following request:
+
 ```http
 Authorization: Bearer <token>
 ```
 
-- Expiración: Controlada por `SANCTUM_TOKEN_EXPIRATION` en minutos (por defecto `1440` minutos = 24 horas).
-- Cierre de sesión: `POST /auth/logout` revoca el token utilizado en la solicitud activa devolviendo un estado HTTP 204.
+- Expiration: `SANCTUM_TOKEN_EXPIRATION`, in minutes (default `1440`, 24 hours).
+- Logout: `POST /auth/logout` revokes only the token used in that request and returns `204 No Content`.
+- Expired tokens are deleted daily by the scheduled `sanctum:prune-expired` command. The scheduler must be running (`php artisan schedule:work`, or a cron entry that runs `schedule:run`).
 
 ## Endpoints
 
-El prefijo `/api` es configurable a través de la variable `API_PREFIX` en el entorno (pudiendo definirse vacío `""` o como `"api/v1"`).
+All routes use the `/api` prefix, which can be changed with the `API_PREFIX` environment variable (for example `api/v1`, or an empty value for no prefix).
 
-| Método | Ruta | Permiso | Descripción |
+| Method | Path | Permission | Description |
 | :--- | :--- | :--- | :--- |
-| `GET` | `/health` | Público | Verificación del estado de la aplicación y la conexión a la base de datos. |
-| `POST` | `/auth/login` | Público | Autenticación con limitador de tasa (`throttle:login`) y emisión de token Bearer. |
-| `POST` | `/auth/logout` | Autenticado | Revocación del token de acceso actual. |
-| `GET` | `/auth/me` | Autenticado | Información del usuario actual, incluyendo roles y permisos. |
-| `GET` | `/currencies` | `currencies.view` | Listado de divisas registradas ordenadas alfabéticamente por código. |
-| `POST` | `/currencies` | `currencies.manage` | Creación de divisa con código ISO 4217 en mayúsculas y tasa cambiaria. |
-| `GET` | `/currencies/{id}` | `currencies.view` | Consulta detallada de una divisa por ID. |
-| `PUT` | `/currencies/{id}` | `currencies.manage` | Reemplazo completo de los campos de una divisa. |
-| `PATCH` | `/currencies/{id}` | `currencies.manage` | Actualización parcial de atributos enviados para una divisa. |
-| `DELETE` | `/currencies/{id}` | `currencies.manage` | Eliminación de divisa (retorna 409 Conflict si está referenciada). |
-| `GET` | `/products` | `products.view` | Lista paginada con filtros por texto, divisa, rango de precio y orden. |
-| `POST` | `/products` | `products.create` | Creación atómica de producto y precios adicionales opcionales. |
-| `GET` | `/products/{id}` | `products.view` | Detalle del producto cargando su divisa base y precios secundarios. |
-| `PUT` | `/products/{id}` | `products.update` | Reemplazo total de la entidad producto (exige todos los campos). |
-| `PATCH` | `/products/{id}` | `products.update` | Modificación parcial de campos específicos de un producto. |
-| `DELETE` | `/products/{id}` | `products.delete` | Borrado lógico (*soft delete*) del producto. |
-| `GET` | `/products/{id}/prices` | `products.view` | Lista de precios adicionales asociados al producto. |
-| `POST` | `/products/{id}/prices` | `prices.create` | Registro de un precio en divisa adicional para el producto. |
+| `GET` | `/health` | Public | Application and database status. |
+| `POST` | `/auth/login` | Public | Issues a bearer token. Rate limited (`throttle:login`). |
+| `POST` | `/auth/logout` | Authenticated | Revokes the current token. |
+| `GET` | `/auth/me` | Authenticated | Current user with roles and permissions. |
+| `GET` | `/currencies` | `currencies.view` | All currencies, sorted by code. |
+| `POST` | `/currencies` | `currencies.manage` | Creates a currency (uppercase ISO 4217 code and exchange rate). |
+| `GET` | `/currencies/{id}` | `currencies.view` | Currency details. |
+| `PUT` | `/currencies/{id}` | `currencies.manage` | Replaces all the fields of a currency. |
+| `PATCH` | `/currencies/{id}` | `currencies.manage` | Updates only the fields sent. |
+| `DELETE` | `/currencies/{id}` | `currencies.manage` | Deletes a currency (`409 Conflict` if a product or price uses it). |
+| `GET` | `/products` | `products.view` | Paginated list with search, currency and price range filters, and sorting. |
+| `POST` | `/products` | `products.create` | Creates a product and its optional additional prices in one transaction. |
+| `GET` | `/products/{id}` | `products.view` | Product details with its base currency and additional prices. |
+| `PUT` | `/products/{id}` | `products.update` | Replaces a product (all fields required). |
+| `PATCH` | `/products/{id}` | `products.update` | Updates only the fields sent. |
+| `DELETE` | `/products/{id}` | `products.delete` | Soft deletes a product. |
+| `GET` | `/products/{id}/prices` | `products.view` | Additional prices of a product. |
+| `POST` | `/products/{id}/prices` | `prices.create` | Adds a price in another currency. |
 
-## Ejemplos de uso
+## Usage examples
 
-### Crear un producto con precios adicionales
+### Create a product with additional prices
+
 ```bash
 curl -s -X POST http://localhost:8080/api/products \
   -H "Authorization: Bearer <token>" \
   -H "Accept: application/json" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "Monitor Profesional 27",
-    "description": "Panel IPS 4K con calibracion de fabrica.",
+    "name": "Professional Monitor 27",
+    "description": "4K IPS panel with factory calibration.",
     "price": "450.00",
     "currency_id": 1,
     "tax_cost": "72.00",
@@ -185,18 +219,29 @@ curl -s -X POST http://localhost:8080/api/products \
   }'
 ```
 
-### Listar productos con filtros y orden
+Amounts (`price`, `tax_cost`, `manufacturing_cost`, `exchange_rate`) can be sent as decimal strings (recommended) or as JSON numbers. Both keep full precision, but strings avoid rounding on the client side. Amounts accept up to two decimals (`exchange_rate` up to eight). `PATCH` requests must include at least one updatable field.
+
+### List products with filters and sorting
+
 ```bash
-curl -s -X GET "http://localhost:8080/api/products?search=Monitor&currency_id=1&min_price=100&max_price=500&sort=-price&per_page=15&page=1" \
+curl -s "http://localhost:8080/api/products?search=Monitor&currency_id=1&min_price=100&max_price=500&sort=-price&per_page=15&page=1" \
   -H "Authorization: Bearer <token>" \
   -H "Accept: application/json"
 ```
 
-Los importes (`price`, `tax_cost`, `manufacturing_cost`, `exchange_rate`) pueden enviarse como cadenas decimales (recomendado) o como números JSON; ambos conservan la precisión completa, pero las cadenas evitan ambigüedades de redondeo en el cliente. Las peticiones `PATCH` deben incluir al menos un campo actualizable.
+| Parameter | Description |
+| :--- | :--- |
+| `search` | Case-insensitive text in the name or description. `%` and `_` are treated as literal characters. |
+| `currency_id` | Base currency of the product. |
+| `min_price`, `max_price` | Price range in the base currency; either one can be used alone. |
+| `sort` | `name`, `-name`, `price`, `-price`, `created_at`, `-created_at` (default `-created_at`). |
+| `per_page` | Page size, from 1 to 100 (default 15). |
+| `page` | Page number. |
 
-Valores permitidos en `sort`: `name`, `-name`, `price`, `-price`, `created_at`, `-created_at`. Límite máximo de `per_page`: 100.
+The response contains `data`, plus Laravel's standard pagination blocks: `links` (`first`, `last`, `prev`, `next`) and `meta` (`current_page`, `last_page`, `per_page`, `total`, …).
 
-### Registrar un nuevo precio adicional
+### Add a price in another currency
+
 ```bash
 curl -s -X POST http://localhost:8080/api/products/1/prices \
   -H "Authorization: Bearer <token>" \
@@ -208,15 +253,16 @@ curl -s -X POST http://localhost:8080/api/products/1/prices \
   }'
 ```
 
-### Respuesta JSON de ejemplo (Producto)
-Los importes monetarios se serializan como cadenas con exactamente dos cifras decimales:
+### Sample response (product)
+
+Amounts are returned as strings with exactly two decimals:
 
 ```json
 {
   "data": {
     "id": 1,
-    "name": "Monitor Profesional 27",
-    "description": "Panel IPS 4K con calibracion de fabrica.",
+    "name": "Professional Monitor 27",
+    "description": "4K IPS panel with factory calibration.",
     "price": "450.00",
     "currency_id": 1,
     "currency": {
@@ -249,9 +295,10 @@ Los importes monetarios se serializan como cadenas con exactamente dos cifras de
 }
 ```
 
-## Formato de errores
+## Error format
 
-Las respuestas de error en la API presentan un sobre JSON estandarizado:
+Every error response uses the same JSON envelope:
+
 ```json
 {
   "message": "The price currency cannot be the product base currency.",
@@ -264,28 +311,28 @@ Las respuestas de error en la API presentan un sobre JSON estandarizado:
 }
 ```
 
-Códigos HTTP y valores de `code` gestionados por `ApiExceptionRenderer`:
+HTTP statuses and `code` values produced by `ApiExceptionRenderer`:
 
-| Estado HTTP | Código (`code`) | Causa |
+| HTTP status | `code` | Cause |
 | :--- | :--- | :--- |
-| `401 Unauthorized` | `unauthenticated` | Petición sin token Bearer válido o con token revocado/expirado. |
-| `403 Forbidden` | `forbidden` | El rol del usuario carece del permiso requerido por la política. |
-| `404 Not Found` | `not_found` | Recurso inexistente o producto con borrado lógico aplicado. |
-| `405 Method Not Allowed` | `method_not_allowed` | Método HTTP no soportado para la ruta solicitada. |
-| `409 Conflict` | `currency_in_use` | Intento de eliminación de una divisa asociada a productos o precios. |
-| `409 Conflict` | `conflict` | Violación de una restricción de la base de datos (unicidad o clave foránea) que escapó a la validación, p. ej. por una condición de carrera. |
-| `422 Unprocessable Entity` | `validation_failed` | Falla en validación de FormRequest (incluye objeto `errors`). |
-| `429 Too Many Requests` | `too_many_requests` | Límite de peticiones por minuto excedido (con cabecera `Retry-After`). |
-| `500 Internal Server Error` | `server_error` | Excepción interna no controlada (detalles omitidos en producción). |
-| Otro código HTTP | `http_error` | Excepciones HTTP genéricas capturadas. |
+| `401 Unauthorized` | `unauthenticated` | Missing, invalid, revoked or expired token. |
+| `403 Forbidden` | `forbidden` | The user or the token lacks the required permission. |
+| `404 Not Found` | `not_found` | The resource does not exist or the product was deleted. |
+| `405 Method Not Allowed` | `method_not_allowed` | The route does not support the HTTP method. |
+| `409 Conflict` | `currency_in_use` | The currency is used by a product or a price and cannot be deleted. |
+| `409 Conflict` | `conflict` | A database constraint (unique or foreign key) rejected the request after validation, for example in a race between two requests. |
+| `422 Unprocessable Entity` | `validation_failed` | Validation failed. Includes the `errors` object, by field. |
+| `429 Too Many Requests` | `too_many_requests` | Rate limit exceeded. Includes the `Retry-After` header. |
+| `500 Internal Server Error` | `server_error` | Unexpected error. Details are hidden when `APP_DEBUG=false`. |
+| Any other HTTP status | `http_error` | Other HTTP exceptions. |
 
-## Modelo de datos
+## Data model
 
 ```mermaid
 erDiagram
-    CURRENCIES ||--o{ PRODUCTS : "divisa base"
-    PRODUCTS ||--o{ PRODUCT_PRICES : "posee"
-    CURRENCIES ||--o{ PRODUCT_PRICES : "expresado en"
+    CURRENCIES ||--o{ PRODUCTS : "base currency"
+    PRODUCTS ||--o{ PRODUCT_PRICES : "has"
+    CURRENCIES ||--o{ PRODUCT_PRICES : "priced in"
 
     CURRENCIES {
         bigint id PK
@@ -320,72 +367,82 @@ erDiagram
     }
 ```
 
-## Decisiones técnicas
+## Technical decisions
 
-- **Precisión decimal exacta (`numeric(19,4)` y `numeric(18,8)`):** Se utilizan cadenas en JSON y la librería `Brick\Math\BigDecimal` en lugar de `float` o centavos enteros porque el centavo entero no escala con divisas sin submúltiplos ni con tasas de cambio de 8 decimales, y el punto flotante introduce pérdida de precisión binaria inaceptable en finanzas.
-- **Precios adicionales fijados por el negocio:** Los importes en `product_prices` son explícitos y no calculados dinámicamente mediante `exchange_rate` para permitir estrategias de fijación de precios comerciales y márgenes específicos por mercado.
-- **Restricción de divisa base y unicidad:** Un producto no puede registrar un precio adicional en su propia divisa base (error 422) y solo puede poseer un precio por divisa (índice único `product_id, currency_id`) para evitar ambigüedades de cotización.
-- **Borrado lógico (*Soft Deletes*):** Los productos eliminados permanecen en base de datos para preservar la integridad referencial histórica en auditorías sin romper dependencias externas.
-- **Identificadores enteros autoincrementales:** Se preservan los IDs enteros especificados en el enunciado; el riesgo de enumeración se mitiga con autenticación obligatoria, políticas restrictivas y limitación de tasa (*rate limiting*).
-- **Inclusión de `currencies.code` (ISO 4217):** Se añadió el campo `code` de 3 letras normalizadas en mayúsculas debido a que la consigna describe `name` como identificador único, mientras que en la práctica los estándares financieros exigen código ISO.
-- **Semántica PUT vs PATCH:** `PUT` ejecuta reemplazo completo exigiendo la totalidad del payload; `PATCH` admite modificaciones atómicas de subconjuntos de atributos mediante `Rules::partial`.
-- **Controladores delgados y arquitectura en capas:** Flujo desacoplado `FormRequest -> Action -> Resource` donde la autorización reside exclusivamente en `Policies` y los controladores no ejecutan lógica de base de datos directa.
-- **Sin dependencia de Redis:** La persistencia de caché, sesiones y límites de tasa opera sobre PostgreSQL (`database`), reduciendo la complejidad de infraestructura en instancias monolíticas.
-- **Usuario de ejecución en contenedores:** El contenedor de desarrollo corre PHP-FPM como `root` (`php-fpm -R`) para permitir permisos de escritura fluidos sobre bind mounts en Docker Desktop (Windows/macOS), mientras que el target de producción (`--target prod`) opera de forma segura bajo el usuario no privilegiado `www-data`.
+- **Exact decimals (`numeric(19,4)` and `numeric(18,8)`).** Amounts travel as strings in JSON and arithmetic uses `Brick\Math\BigDecimal`, never `float`. Integer cents were ruled out because they do not fit currencies with different minor units, nor exchange rates with eight decimals; floating point loses precision.
+- **Additional prices are set by the business.** Prices in `product_prices` are stored explicitly, not calculated from `exchange_rate`, so each market can have its own pricing. `exchange_rate` is reference data relative to USD (the seeded rates are illustrative).
+- **Base currency and one price per currency.** A product cannot have an additional price in its own base currency (`422`), and it can have only one price per currency (unique index on `product_id, currency_id`).
+- **Soft deletes.** Deleted products stay in the database for history and auditing, and the API answers `404` for them.
+- **Auto-increment integer IDs.** They follow the data model of the assignment. ID enumeration is mitigated by mandatory authentication, policies and rate limiting.
+- **ISO 4217 `code` on currencies.** The assignment describes `name` as the unique identifier; the three-letter uppercase ISO code was added because it is the standard identifier for currencies.
+- **PUT vs PATCH.** `PUT` replaces the resource and requires every field; `PATCH` updates only the fields sent.
+- **Thin controllers and layers.** Every request follows `FormRequest -> Action -> Resource`. Authorization lives only in policies, and controllers never query the database directly (enforced by architecture tests).
+- **No Redis.** Cache, sessions and rate limiting use the `database` driver. A single instance gains nothing from Redis, so it would only add infrastructure.
+- **Container users.** The development container runs PHP-FPM as `root` (`php-fpm -R`) so it can write to bind mounts on Docker Desktop (Windows/macOS). The production target (`--target prod`) runs as the unprivileged `www-data` user.
 
-## Seguridad
+## Security
 
-La API incorpora defensas en profundidad: autenticación por token con expiración, control de acceso RBAC por políticas, blindaje contra asignación masiva, limitación de peticiones por minuto, protección contra enumeración de usuarios en login, cabeceras estrictas en nginx y escaneo de vulnerabilidades y secretos en CI. Consulte [SECURITY.md](SECURITY.md) para conocer los detalles y las recomendaciones de despliegue en producción.
+The API combines expiring tokens, role-based access through policies, mass-assignment protection, rate limiting, protection against user enumeration on login, strict nginx headers, and dependency and secret scanning in CI. See [SECURITY.md](SECURITY.md) for details and production recommendations.
 
-## Calidad y pruebas
+## Quality and testing
 
-- **Suite de pruebas con Pest:** Pruebas de integración de características (`tests/Feature/`), pruebas unitarias (`tests/Unit/`) y pruebas de arquitectura (`tests/Arch/`) que verifican strict types, clases finales e inmutables, y ausencia de casts a `float`.
-- **Cobertura mínima:** Configuración exigida al 90% de cobertura en la ejecución de tests.
-- **Análisis estático:** Larastan configurado en nivel 8 (`phpstan analyse --memory-limit=1G`), asegurando tipado estricto en cada método.
-- **Estilo de código:** Verificación de estándares mediante Laravel Pint (`pint --test`).
-- **Flujo de Integración Continua (GitHub Actions):** Pipeline que ejecuta lint con Pint, análisis estático con Larastan, matriz de pruebas en PHP 8.3, 8.4 y 8.5 sobre PostgreSQL 16, prueba de humo en SQLite standalone, auditoría con `composer audit`, escaneo de secretos con `gitleaks` y construcción de imagen Docker de producción.
+- **Pest test suite:** feature tests (`tests/Feature/`), unit tests (`tests/Unit/`) and architecture tests (`tests/Arch/`). The architecture tests check strict types, final and read-only classes, no debug calls and no `float` casts.
+- **Coverage:** the CI fails below 90% line coverage.
+- **Static analysis:** Larastan level 8.
+- **Code style:** Laravel Pint.
+- **Continuous integration (GitHub Actions)**, on every push to `main` and `develop` and on every pull request:
+  - **Quality:** Pint, Larastan, `composer audit` and a `gitleaks` scan of the whole git history.
+  - **Tests:** PHP 8.3, 8.4 and 8.5 against PostgreSQL 16, with the coverage gate on PHP 8.4. PHP 8.3 is the minimum version allowed by `composer.json`, 8.4 is the version of the Docker image and 8.5 is the latest release.
+  - **Standalone mode:** `composer setup` with SQLite, then a smoke test against `php artisan serve`.
+  - **Docker stack:** builds and starts the stack, runs smoke tests (admin and viewer), checks the security headers, runs the Postman collection with Newman, checks that `docs/openapi.json` is up to date and builds the production image.
 
-## Documentación de la API
+## API documentation
 
-- **Interfaz Scramble:** Disponible de manera interactiva sin dependencias externas en `http://localhost:8080/docs/api`.
-- **Especificación OpenAPI 3.1:** Exportada y versionada en el archivo `docs/openapi.json`.
-- **Colección de Postman:** Ubicada en `docs/postman/products-api.postman_collection.json` junto al entorno `docs/postman/local.postman_environment.json`.
+- **Scramble UI:** `http://localhost:8080/docs/api` (the raw specification is at `/docs/api.json`). It is public and read-only.
+- **OpenAPI 3.1 specification:** exported to `docs/openapi.json`. To regenerate it:
+  ```bash
+  docker compose exec -e APP_URL=http://localhost:8080 app php artisan scramble:export --path=docs/openapi.json
+  ```
+- **Postman collection:** `docs/postman/products-api.postman_collection.json`, with the environment `docs/postman/local.postman_environment.json`.
 
-La colección se ejecuta en orden contra una base recién sembrada (`docker compose exec app php artisan migrate:fresh --seed`). Para correrla con Newman, con Node instalado:
+The collection runs in order against a freshly seeded database (`docker compose exec app php artisan migrate:fresh --seed`). To run it with Newman, if you have Node:
+
 ```bash
 npx newman run docs/postman/products-api.postman_collection.json -e docs/postman/local.postman_environment.json
 ```
 
-O sin Node, con la imagen oficial de Newman conectada a la red de Docker Compose:
+Or without Node, with the official Newman image attached to the Docker Compose network:
+
 ```bash
 docker run --rm --network products-api_default -v "$(pwd)/docs/postman:/etc/newman" postman/newman:6-alpine run products-api.postman_collection.json -e local.postman_environment.json --env-var base_url=http://nginx/api
 ```
 
-## Estructura del proyecto
+## Project structure
 
 ```text
 app/
-├── Actions/                 Acciones atómicas de lógica de negocio y transacciones
-├── Enums/                   Enumeraciones tipadas para Roles y Permisos del sistema
-├── Exceptions/              Manejador centralizado de errores API y excepciones de dominio
+├── Actions/                 Single-purpose business actions and transactions
+├── Enums/                   Typed roles and permissions
+├── Exceptions/              API error renderer and domain exceptions
 ├── Http/
-│   ├── Controllers/Api/     Controladores delgados delegando en Actions y Resources
-│   ├── Requests/            FormRequests con reglas de validación y autorización
-│   └── Resources/           Transformadores JSON y formateadores de respuesta
-├── Models/                  Modelos Eloquent, relaciones, casts y scopes
-├── Policies/                Políticas de autorización asociadas a modelos
-├── Providers/               Configuración de servicios, RateLimiter y Gates
-└── Support/                 Utilidades auxiliares (cálculo Money y reglas compartidas)
+│   ├── Controllers/Api/     Thin controllers delegating to actions and resources
+│   ├── Requests/            Form requests with validation and authorization
+│   └── Resources/           JSON transformers
+├── Models/                  Eloquent models, relations, casts and scopes
+├── Policies/                Authorization policies
+├── Providers/               Service configuration, rate limiters and gates
+└── Support/                 Money formatting, shared validation rules and OpenAPI customizations
+docker/                      PHP, nginx and PostgreSQL configuration
+docs/                        OpenAPI specification and Postman collection
+tests/                       Feature, unit and architecture tests
 ```
 
-## Flujo de trabajo Git
+## Git workflow
 
-- **Ramas del repositorio:**
-  - `main`: Código estable de producción y versiones etiquetadas.
-  - `develop`: Rama principal de integración continua.
-  - `feature/*`: Desarrollo de nuevas características y endpoints.
-  - `fix/*`: Correcciones de errores y bugs.
-  - `chore/*`: Tareas de mantenimiento, dependencias y configuración.
-  - `docs/*`: Actualizaciones de documentación y especificaciones.
-  - `ci/*`: Mejoras y mantenimiento de pipelines de GitHub Actions.
-- **Convención de commits:** Uso estricto de [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `test:`, `ci:`).
+- **Branches (GitFlow):**
+  - `main`: stable code; every release is tagged (`v1.0.0`, `v1.0.1`, …).
+  - `develop`: integration branch.
+  - `feature/*`, `fix/*`, `docs/*`, `ci/*`, `chore/*`: short-lived branches created from `develop` and merged back through a pull request.
+  - `release/*`: prepares a version, is merged into `main` and back into `develop`.
+- **Commits:** [Conventional Commits](https://www.conventionalcommits.org/) in English (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `perf:`, `build:`, `ci:`, `chore:`).
+- **Changes:** see [CHANGELOG.md](CHANGELOG.md).

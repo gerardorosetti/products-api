@@ -1,28 +1,31 @@
-# Política de Seguridad
+# Security Policy
 
-Este documento detalla las medidas de seguridad técnicas implementadas en Products API y las pautas recomendadas para despliegues en entornos de producción.
+**English** · [Español](SECURITY.es.md)
 
-## Medidas Implementadas
+This document describes the security measures implemented in Products API and the recommended settings for production deployments.
 
-- **Autenticación mediante tokens opacos:** Gestión de sesiones mediante Laravel Sanctum con tokens de acceso personal opacos (no JWT desprotegidos), revocación explícita por sesión y tiempo de expiración configurable (`SANCTUM_TOKEN_EXPIRATION`, por defecto 1440 minutos / 24 horas).
-- **Habilidades y control de acceso (RBAC):** Cada token contiene únicamente las habilidades (*abilities*) asociadas a los permisos del usuario (`spatie/laravel-permission`). La autorización de cada endpoint se resuelve exclusivamente con políticas (`ProductPolicy`, `CurrencyPolicy`), invocadas desde los `FormRequest` o con `Gate::authorize`. Las políticas exigen el permiso del usuario **y** la habilidad correspondiente en el token, por lo que un token emitido con menos habilidades queda limitado a ellas.
-- **Limpieza de tokens expirados:** El planificador ejecuta a diario `sanctum:prune-expired --hours=24`, que elimina de la base de datos los tokens expirados hace más de 24 horas (requiere el planificador activo: `schedule:work` o cron con `schedule:run`).
-- **Validación rigurosa de entradas:** Todas las peticiones HTTP se validan antes de llegar al dominio mediante clases `FormRequest`, asegurando tipos estrictos, límites de longitud, formato ISO 4217 para divisas y validación decimal precisa.
-- **Protección contra asignación masiva:** Todos los modelos Eloquent definen explícitamente `$fillable`, bloqueando la inyección de atributos no autorizados.
-- **Limitación de tasa de solicitudes (*Rate Limiting*):**
-  - Prefijo API general: 60 peticiones por minuto por usuario autenticado o dirección IP (`throttle:api`).
-  - Inicio de sesión: 5 peticiones por minuto por combinación de correo electrónico e IP (`throttle:login`), con cabeceras `Retry-After`.
-- **Prevención de enumeración de usuarios:** El endpoint `/auth/login` responde con el mismo mensaje genérico ante credenciales incorrectas o usuarios inexistentes, y realiza exactamente una comprobación de hash en ambos casos (contra un hash ficticio en caché cuando el usuario no existe), de modo que el tiempo de respuesta no revele qué correos están registrados.
-- **Sobre de errores uniforme y sin fugas de información:** `ApiExceptionRenderer` captura todas las excepciones del prefijo API y devuelve una estructura homogénea (`message`, `code`, `errors`). Cuando `APP_DEBUG=false`, los errores internos (500) ocultan trazas, consultas SQL y detalles del servidor.
-- **Cabeceras de seguridad HTTP (nginx):** Se emiten cabeceras restrictivas en cada respuesta: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Content-Security-Policy: default-src 'none'; frame-ancestors 'none'` (omitida solo en `/docs`, cuya interfaz necesita scripts propios), desactivación de firma del servidor (`server_tokens off`) y bloqueo de archivos ocultos.
-- **Principio de menor privilegio en contenedores:** La imagen Docker de producción (`--target prod`) se ejecuta con el usuario sin privilegios `www-data`, sin dependencias de desarrollo y con `APP_DEBUG=false`.
-- **Gestión de secretos:** El repositorio no contiene secretos reales: `.env` está excluido de git, `APP_KEY` se genera al arrancar y las credenciales de base de datos de `docker-compose.yml` son valores por defecto de desarrollo que se sobrescriben con variables de entorno.
-- **Análisis automatizado en CI:** Integración continua que ejecuta `composer audit` para verificar vulnerabilidades conocidas en dependencias y `gitleaks` para auditar filtraciones de secretos en el historial de commits.
+## Implemented measures
 
-## Recomendaciones para Producción
+- **Opaque tokens:** Laravel Sanctum personal access tokens (not JWT), revocable one by one, with a configurable expiration (`SANCTUM_TOKEN_EXPIRATION`, default 1440 minutes / 24 hours).
+- **Abilities and role-based access control:** each token carries only the abilities that match the user's permissions (`spatie/laravel-permission`). Every endpoint is authorized only through policies (`ProductPolicy`, `CurrencyPolicy`), called from the form requests or with `Gate::authorize`. The policies require the user's permission **and** the matching token ability, so a token issued with fewer abilities is limited to them.
+- **Expired token cleanup:** the scheduler runs `sanctum:prune-expired --hours=24` daily, which deletes tokens that expired more than 24 hours ago (requires a running scheduler: `schedule:work`, or a cron entry with `schedule:run`).
+- **Input validation:** every request is validated by a form request before it reaches the business logic: strict types, length limits, ISO 4217 currency codes and decimal amounts with a fixed number of decimals.
+- **Mass-assignment protection:** every Eloquent model declares `$fillable` explicitly.
+- **Rate limiting:**
+  - API: 60 requests per minute per authenticated user, or per IP address for guests (`throttle:api`).
+  - Login: 5 requests per minute per email and IP address (`throttle:login`), with the `Retry-After` header.
+- **User enumeration protection:** `/auth/login` returns the same generic message for a wrong password and for an unknown email, and it runs exactly one password hash check in both cases (against a cached dummy hash when the user does not exist), so the response time does not reveal which emails are registered.
+- **Uniform error envelope without information leaks:** `ApiExceptionRenderer` handles every API exception and returns the same structure (`message`, `code`, `errors`). With `APP_DEBUG=false`, internal errors (500) hide stack traces, SQL queries and server details.
+- **HTTP security headers (nginx):** every response includes `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer` and `Content-Security-Policy: default-src 'none'; frame-ancestors 'none'`. The CSP is omitted only on `/docs`, because the documentation UI needs its own scripts. nginx also hides its version (`server_tokens off`) and blocks hidden files.
+- **Public documentation:** the API documentation (`/docs/api` and `/docs/api.json`) is public and read-only. It describes the endpoints but exposes no data, and every endpoint still requires a token. To restrict it, change the `viewApiDocs` gate in `AppServiceProvider`.
+- **Least privilege in containers:** the production image (`--target prod`) runs as the unprivileged `www-data` user, without development dependencies and with `APP_DEBUG=false`.
+- **Secrets management:** the repository contains no real secrets: `.env` is ignored by git, `APP_KEY` is generated on first start, and the database credentials in `docker-compose.yml` are development defaults that environment variables override.
+- **Automated checks in CI:** `composer audit` checks the dependencies for known vulnerabilities, and `gitleaks` scans the whole commit history for leaked secrets.
 
-1. **Terminación TLS/HTTPS:** Desplegar tras un proxy inverso o balanceador de carga con certificados TLS válidos (HSTS recomendado) para cifrar todo el tráfico de tokens y datos financieros en tránsito.
-2. **Desactivar depuración:** Asegurar que `APP_DEBUG=false` y `APP_ENV=production` en las variables de entorno del servidor.
-3. **Rotar credenciales por defecto:** Modificar `SEED_USER_PASSWORD`, cambiar las claves de los usuarios de prueba (`admin@example.com`, `viewer@example.com`) o eliminarlos del entorno productivo.
-4. **Restricción de CORS:** Publicar la configuración (`php artisan config:publish cors`) y limitar `allowed_origins` en `config/cors.php` a los dominios de las aplicaciones cliente autorizadas.
-5. **Credenciales de base de datos:** Definir `DB_PASSWORD` y el resto de variables `DB_*` con valores propios; no usar los valores por defecto de desarrollo.
+## Production recommendations
+
+1. **TLS/HTTPS:** deploy behind a reverse proxy or load balancer with valid TLS certificates (HSTS recommended) to encrypt tokens and financial data in transit.
+2. **Disable debugging:** set `APP_DEBUG=false` and `APP_ENV=production`.
+3. **Change the default credentials:** set `SEED_USER_PASSWORD`, change the passwords of the demo users (`admin@example.com`, `viewer@example.com`) or remove them.
+4. **Restrict CORS:** publish the configuration (`php artisan config:publish cors`) and limit `allowed_origins` in `config/cors.php` to the client applications' domains.
+5. **Database credentials:** set `DB_PASSWORD` and the other `DB_*` variables to your own values; do not use the development defaults.
