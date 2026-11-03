@@ -113,12 +113,14 @@ class Product extends Model
         $query
             ->when(is_string($search) && $search !== '', function (Builder $q) use ($search): void {
                 // Explicit ESCAPE keeps % and _ literal on every driver (SQLite has no default escape character).
-                $pattern = '%'.addcslashes($search, '\\%_').'%';
+                // "!" instead of a backslash: PDO's SQL parser on PHP 8.3 reads '\' as an escaped quote
+                // and then fails to bind the placeholders that follow it.
+                $pattern = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search).'%';
 
                 $q->where(
                     fn (Builder $q) => $q
-                        ->whereRaw("lower(name) like lower(?) escape '\'", [$pattern])
-                        ->orWhereRaw("lower(description) like lower(?) escape '\'", [$pattern]),
+                        ->whereRaw("lower(name) like lower(?) escape '!'", [$pattern])
+                        ->orWhereRaw("lower(description) like lower(?) escape '!'", [$pattern]),
                 );
             })
             ->when($currencyId !== null, fn (Builder $q) => $q->where('currency_id', $currencyId))
