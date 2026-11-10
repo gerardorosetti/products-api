@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ---- base: PHP-FPM runtime shared by dev and prod ---------------------------
-FROM php:8.4-fpm-alpine AS base
+FROM php:8.5-fpm-alpine AS base
 
 COPY --from=mlocati/php-extension-installer:2 /usr/bin/install-php-extensions /usr/local/bin/
 
